@@ -1,9 +1,11 @@
 'use strict';
 /* ===================== Typen & IEC-Bausteine ===================== */
-const INTR = { Int: [-32768, 32767], DInt: [-2147483648, 2147483647], UInt: [0, 65535], Word: [0, 65535], Byte: [0, 255], Time: [-2147483648, 2147483647] };
-const NUMT = new Set(['Int', 'DInt', 'UInt', 'Word', 'Byte', 'Real', 'LReal', 'Time']);
-const BASIC_TYPES = ['Bool', 'Int', 'DInt', 'UInt', 'Word', 'Byte', 'Real', 'LReal', 'Time'];
-const TYPE_ALIAS = { bool: 'Bool', int: 'Int', dint: 'DInt', uint: 'UInt', word: 'Word', byte: 'Byte', real: 'Real', lreal: 'LReal', time: 'Time',
+const INTR = { Int: [-32768, 32767], DInt: [-2147483648, 2147483647], SInt: [-128, 127], USInt: [0, 255], UInt: [0, 65535], UDInt: [0, 4294967295], Word: [0, 65535], DWord: [0, 4294967295], Byte: [0, 255], Time: [-2147483648, 2147483647] };
+const BITS = { Byte: 8, SInt: 8, USInt: 8, Word: 16, Int: 16, UInt: 16, DWord: 32, DInt: 32, UDInt: 32, Time: 32 };
+const NUMT = new Set(['Int', 'DInt', 'SInt', 'USInt', 'UInt', 'UDInt', 'Word', 'DWord', 'Byte', 'Real', 'LReal', 'Time']);
+const BASIC_TYPES = ['Bool', 'Byte', 'Word', 'DWord', 'SInt', 'Int', 'DInt', 'USInt', 'UInt', 'UDInt', 'Real', 'LReal', 'Time'];
+const TYPE_ALIAS = { bool: 'Bool', int: 'Int', dint: 'DInt', sint: 'SInt', usint: 'USInt', uint: 'UInt', udint: 'UDInt', word: 'Word', dword: 'DWord', byte: 'Byte', real: 'Real', lreal: 'LReal', time: 'Time',
+  tonr_time: 'TONR_TIME', tonr: 'TONR_TIME', ctud_int: 'CTUD_INT', ctud: 'CTUD_INT', ctu_dint: 'CTU_INT', ctd_dint: 'CTD_INT', ctud_dint: 'CTUD_INT', ctu_udint: 'CTU_INT',
   ton_time: 'TON_TIME', ton: 'TON_TIME', tof_time: 'TOF_TIME', tof: 'TOF_TIME', tp_time: 'TP_TIME', tp: 'TP_TIME',
   ctu_int: 'CTU_INT', ctu: 'CTU_INT', ctd_int: 'CTD_INT', ctd: 'CTD_INT', r_trig: 'R_TRIG', f_trig: 'F_TRIG' };
 const IEC = {
@@ -24,6 +26,16 @@ const IEC = {
   CTD_INT: { ins: { CD: 'Bool', LD: 'Bool', PV: 'Int' }, outs: { Q: 'Bool', CV: 'Int' }, run(s) {
     if (s.LD) s.CV = s.PV; else if (s.CD && !s._p && s.CV > -32768) s.CV--;
     s._p = s.CD; s.Q = s.CV <= 0; } },
+  TONR_TIME: { ins: { IN: 'Bool', R: 'Bool', PT: 'Time' }, outs: { Q: 'Bool', ET: 'Time' }, run(s, now) {
+    const acc = s._acc || 0;
+    if (s.R) { s._acc = 0; s._r = 0; s.ET = 0; s.Q = false; return; }
+    if (s.IN) { if (!s._r) { s._r = 1; s._t = now; s._b = acc; } s._acc = Math.min(s._b + Math.round(now - s._t), s.PT); }
+    else if (s._r) { s._r = 0; }
+    s.ET = s._acc || 0; s.Q = s.ET >= s.PT; } },
+  CTUD_INT: { ins: { CU: 'Bool', CD: 'Bool', R: 'Bool', LD: 'Bool', PV: 'Int' }, outs: { QU: 'Bool', QD: 'Bool', CV: 'Int' }, run(s) {
+    if (s.R) s.CV = 0; else if (s.LD) s.CV = s.PV;
+    else { if (s.CU && !s._pu && s.CV < 32767) s.CV++; if (s.CD && !s._pd && s.CV > -32768) s.CV--; }
+    s._pu = s.CU; s._pd = s.CD; s.QU = s.CV >= s.PV; s.QD = s.CV <= 0; } },
   R_TRIG: { ins: { CLK: 'Bool' }, outs: { Q: 'Bool' }, run(s) { s.Q = !!s.CLK && !s._m; s._m = !!s.CLK; } },
   F_TRIG: { ins: { CLK: 'Bool' }, outs: { Q: 'Bool' }, run(s) { s.Q = !s.CLK && !!s._m; s._m = !!s.CLK; } },
 };
@@ -74,6 +86,9 @@ function lex(src) {
     if (c === "'") { let j = i + 1; while (j < n && src[j] !== "'" && src[j] !== '\n') j++;
       if (src[j] !== "'") throw new SclError("Schließendes ' fehlt", line);
       toks.push({ t: 'str', v: src.slice(i + 1, j), line }); i = j + 1; continue; }
+    if (c === '%') { const m = /^%([IQMEA])([BWD]?)(\d+)(?:\.(\d))?/i.exec(src.slice(i));
+      if (!m) throw new SclError('Ungültige Adresse', line);
+      toks.push({ t: 'abs', v: normAddr(m[0]), line }); i += m[0].length; continue; }
     if (c === '#') {
       if (src[i + 1] === '"') { let j = i + 2; while (j < n && src[j] !== '"' && src[j] !== '\n') j++;
         toks.push({ t: 'lid', v: src.slice(i + 2, j), line }); i = j + 1; continue; }
@@ -107,7 +122,8 @@ function lex(src) {
   }
   toks.push({ t: 'eof', line }); return toks;
 }
-function tokText(t) { return t.t === 'qid' ? '"' + t.v + '"' : t.t === 'lid' ? '#' + t.v : t.t === 'str' ? "'" + t.v + "'" : String(t.v); }
+function normAddr(a) { return String(a).toUpperCase().replace(/^%E/, '%I').replace(/^%A/, '%Q').replace(/\s+/g, ''); }
+function tokText(t) { return t.t === 'abs' ? t.v : t.t === 'qid' ? '"' + t.v + '"' : t.t === 'lid' ? '#' + t.v : t.t === 'str' ? "'" + t.v + "'" : String(t.v); }
 
 /* ===================== Parser ===================== */
 class Parser {
@@ -175,7 +191,7 @@ class Parser {
           this.err('Unerwartetes Schlüsselwort'); break;
       }
     }
-    if (t.t !== 'id' && t.t !== 'qid' && t.t !== 'lid') this.err('Anweisung erwartet');
+    if (t.t !== 'id' && t.t !== 'qid' && t.t !== 'lid' && t.t !== 'abs') this.err('Anweisung erwartet');
     const target = this.ref();
     if (this.isOp(':=')) { this.next(); const e = this.expr(); this.semi(); return { k: 'assign', target, e, line }; }
     if (this.isOp('(')) { const args = this.args(); this.semi(); return { k: 'call', target, args, line }; }
@@ -187,6 +203,7 @@ class Parser {
     if (t.t === 'lid') root = { k: 'lid', name: t.v };
     else if (t.t === 'qid') root = { k: 'qid', name: t.v };
     else if (t.t === 'id') root = { k: 'id', name: t.v };
+    else if (t.t === 'abs') root = { k: 'abs', name: t.v };
     else this.err('Operand erwartet');
     this.next(); const path = [];
     while (this.isOp('.')) { this.next(); const m = this.cur;
@@ -230,7 +247,7 @@ class Parser {
     if (t.t === 'str') { this.next(); return { k: 'lit', v: t.v, t: 'String', line: t.line }; }
     if (this.isKw('TRUE') || this.isKw('FALSE')) { this.next(); return { k: 'lit', v: t.u === 'TRUE', t: 'Bool', line: t.line }; }
     if (this.isOp('(')) { this.next(); const e = this.expr(); this.expectOp(')', '„)“ fehlt'); return e; }
-    if (t.t === 'id' || t.t === 'qid' || t.t === 'lid') {
+    if (t.t === 'id' || t.t === 'qid' || t.t === 'lid' || t.t === 'abs') {
       const r = this.ref();
       if (this.isOp('(')) return { k: 'fcall', ref: r, args: this.args(), line: t.line };
       return r; }
@@ -246,6 +263,15 @@ const BUILTIN = {
   MIN: { p: ['IN1', 'IN2', 'IN3', 'IN4'], min: 2, f: Math.min, t: a => numRes(...a) }, MAX: { p: ['IN1', 'IN2', 'IN3', 'IN4'], min: 2, f: Math.max, t: a => numRes(...a) },
   LIMIT: { p: ['MN', 'IN', 'MX'], f: (mn, v, mx) => Math.min(Math.max(v, mn), mx), t: a => numRes(...a) },
   SEL: { p: ['G', 'IN0', 'IN1'], f: (g, a, b) => g ? b : a, t: a => a[1] },
+  ASIN: { p: ['IN'], f: Math.asin, t: 'Real' }, ACOS: { p: ['IN'], f: Math.acos, t: 'Real' }, ATAN: { p: ['IN'], f: Math.atan, t: 'Real' },
+  FRAC: { p: ['IN'], f: x => x - Math.trunc(x), t: 'Real' }, OK: { p: ['IN'], f: x => Number.isFinite(x), t: 'Bool' },
+  SHL: { p: ['IN', 'N'], mk: ts => { const w = BITS[ts[0]] || 16, m = w === 32 ? 0xFFFFFFFF : (1 << w) - 1; return (v, n) => n >= w ? 0 : ((v & m) * Math.pow(2, n)) % Math.pow(2, w); }, t: a => a[0] },
+  SHR: { p: ['IN', 'N'], mk: ts => { const w = BITS[ts[0]] || 16, m = w === 32 ? 0xFFFFFFFF : (1 << w) - 1; return (v, n) => n >= w ? 0 : Math.floor(((v & m) >>> 0) / Math.pow(2, n)); }, t: a => a[0] },
+  ROL: { p: ['IN', 'N'], mk: ts => { const w = BITS[ts[0]] || 16, P = Math.pow(2, w); return (v, n) => { v = ((v % P) + P) % P; n %= w; return ((v * Math.pow(2, n)) % P) + Math.floor(v / Math.pow(2, w - n)); }; }, t: a => a[0] },
+  ROR: { p: ['IN', 'N'], mk: ts => { const w = BITS[ts[0]] || 16, P = Math.pow(2, w); return (v, n) => { v = ((v % P) + P) % P; n %= w; return Math.floor(v / Math.pow(2, n)) + ((v * Math.pow(2, w - n)) % P); }; }, t: a => a[0] },
+  SWAP: { p: ['IN'], mk: ts => (BITS[ts[0]] || 16) === 32 ? v => (((v & 0xFF) << 24) | ((v >>> 8 & 0xFF) << 16) | ((v >>> 16 & 0xFF) << 8) | (v >>> 24 & 0xFF)) >>> 0 : v => ((v & 0xFF) << 8) | ((v >> 8) & 0xFF), t: a => a[0] },
+  DECO: { p: ['IN'], f: n => Math.pow(2, (n | 0) & 31), t: 'DWord' },
+  ENCO: { p: ['IN'], f: v => { v = v >>> 0; if (!v) return 0; let i = 0; while (!(v & 1)) { v >>>= 1; i++; } return i; }, t: 'Int' },
   TRUNC: { p: ['IN'], f: Math.trunc, t: 'DInt' }, ROUND: { p: ['IN'], f: Math.round, t: 'DInt' },
   CEIL: { p: ['IN'], f: Math.ceil, t: 'DInt' }, FLOOR: { p: ['IN'], f: Math.floor, t: 'DInt' },
   NORM_X: { p: ['MIN', 'VALUE', 'MAX'], f: (mn, v, mx) => mx === mn ? 0 : (v - mn) / (mx - mn), t: 'Real' },
@@ -280,6 +306,8 @@ function memberType(t, m, reg) {
 }
 function resolveRoot(r, sc) {
   const { root } = r, name = root.name, lo = name.toLowerCase();
+  if (root.k === 'abs') { const tag = [...sc.reg.tags.values()].find(t => normAddr(t.addr || '') === name);
+    if (!tag) throw new SclError(`Adresse ${name} ist keiner PLC-Variablen zugeordnet`, r.line); return { base: 'G', key: tag.name, t: canonType(tag.type, sc.reg) }; }
   if (root.k === 'lid') { const v = sc.vars.get(lo); if (!v) throw new SclError(`Lokale Variable „#${name}“ ist nicht deklariert`, r.line); return { base: 'L', key: v.name, t: v.type }; }
   if (root.k === 'id' && sc.vars.has(lo)) { const v = sc.vars.get(lo); return { base: 'L', key: v.name, t: v.type }; }
   const tag = sc.reg.tags.get(lo);
@@ -358,7 +386,7 @@ function compileExpr(e, sc) {
             slots[idx] = compileExpr(ar.e, sc); });
           const need = bi.min || bi.p.length; const used = [];
           for (let i = 0; i < bi.p.length; i++) { if (slots[i]) used.push(slots[i]); else if (i < need) throw new SclError(`${nm}: Parameter ${bi.p[i]} fehlt`, e.line); }
-          const fs = used.map(s => s.f), ts = used.map(s => s.t), fn = bi.f;
+          const fs = used.map(s => s.f), ts = used.map(s => s.t), fn = bi.mk ? bi.mk(ts) : bi.f;
           const t = typeof bi.t === 'function' ? bi.t(ts) : bi.t;
           if (fs.length === 1) { const f0 = fs[0]; return { f: c => fn(f0(c)), t }; }
           return { f: c => fn(...fs.map(f => f(c))), t }; }
@@ -488,95 +516,15 @@ function compileRefString(str, sc) {
 }
 
 /* ===================== KOP / FUP → SCL ===================== */
-const CMP_SCL = { '==': '=', '<>': '<>', '>': '>', '<': '<', '>=': '>=', '<=': '<=' };
-const ARITH = { ADD: '+', SUB: '-', MUL: '*', DIV: '/' };
+/* ===================== Hilfen für Codeerzeugung ===================== */
 function simple(x) { return /^(NOT )?[\w#".]+$/.test(x) || /^\([^()]*\)$/.test(x) || balancedParen(x); }
 function balancedParen(x) { if (x[0] !== '(' || x[x.length - 1] !== ')') return false; let d = 0; for (let i = 0; i < x.length; i++) { if (x[i] === '(') d++; else if (x[i] === ')') { d--; if (d === 0 && i < x.length - 1) return false; } } return d === 0; }
 function par(x) { return simple(x) ? x : '(' + x + ')'; }
-function andX(a, b) { if (a === null) return null; if (a === 'TRUE') return b; return a + ' AND ' + b; }
-function emitEl(el, P, emit, err, reg) {
-  const o = k => { const v = String(el[k] ?? '').trim(); if (!v) { err(`${elLabel(el.t)}: ${k.toUpperCase()} fehlt`); return 'FALSE'; } return v; };
-  const opt = k => String(el[k] ?? '').trim();
-  const gd = s => emit(P === 'TRUE' ? s : `IF ${P} THEN ${s} END_IF;`);
-  switch (el.t) {
-    case 'COIL': emit(`${o('op')} := ${P};`); return P;
-    case 'NCOIL': emit(`${o('op')} := NOT ${par(P)};`); return P;
-    case 'SET': gd(`${o('op')} := TRUE;`); return P;
-    case 'RST': gd(`${o('op')} := FALSE;`); return P;
-    case 'TON': case 'TOF': case 'TP': { const i = o('inst'); let s = `${i}(IN := ${P}, PT := ${o('pt')}`;
-      if (opt('q')) s += `, Q => ${opt('q')}`; if (opt('et')) s += `, ET => ${opt('et')}`; emit(s + ');'); return `${i}.Q`; }
-    case 'CTU': case 'CTD': { const i = o('inst'); let s = el.t === 'CTU' ? `${i}(CU := ${P}, R := ${opt('r') || 'FALSE'}, PV := ${o('pv')}` : `${i}(CD := ${P}, LD := ${opt('ld') || 'FALSE'}, PV := ${o('pv')}`;
-      if (opt('q')) s += `, Q => ${opt('q')}`; if (opt('cv')) s += `, CV => ${opt('cv')}`; emit(s + ');'); return `${i}.Q`; }
-    case 'MOVE': gd(`${o('out')} := ${o('in')};`); return P;
-    case 'ADD': case 'SUB': case 'MUL': case 'DIV': gd(`${o('out')} := ${o('in1')} ${ARITH[el.t]} ${o('in2')};`); return P;
-    case 'CALL': {
-      const bn = opt('blk').replace(/"/g, ''); const b = bn && reg.blocks.get(bn.toLowerCase());
-      if (!b || (b.type !== 'FB' && b.type !== 'FC')) { err(bn ? `Baustein „${bn}“ existiert nicht oder ist kein FB/FC` : 'CALL: Baustein fehlt'); return P; }
-      const tgt = b.type === 'FB' ? o('inst') : `"${b.name}"`; const args = []; const pm = el.params || {};
-      for (const v of ifaceVars(b, ['Input', 'InOut'])) { const x = String(pm[v.name] ?? '').trim(); if (x) args.push(`${v.name} := ${x}`); else if (b.type === 'FC') err(`${b.name}: Parameter ${v.name} nicht versorgt`); }
-      for (const v of ifaceVars(b, ['Output'])) { const x = String(pm[v.name] ?? '').trim(); if (x) args.push(`${v.name} => ${x}`); }
-      gd(`${tgt}(${args.join(', ')});`); return P; }
-  }
-  err('Unbekanntes Element ' + el.t); return P;
-}
-function elLabel(t) { return ({ NO: 'Schließer', NC: 'Öffner', COIL: 'Spule', NCOIL: 'Neg. Spule', SET: 'Setzen', RST: 'Rücksetzen', CMP: 'Vergleicher', P: 'P-Flanke', N: 'N-Flanke' })[t] || t; }
-function ladGen(net, ni, reg, emit, err, temps) {
-  const R = net.rows, C = net.cols; let p = Array(R).fill('TRUE'); const dIn = {}, dOut = {}, dLink = {}; let tc = 0;
-  const op = (el, k) => { const v = String(el[k] ?? '').trim(); if (!v) { err(`${elLabel(el.t)}: Operand fehlt`); return 'FALSE'; } return v; };
-  for (let c = 0; c < C; c++) {
-    const out = Array(R).fill(null);
-    for (let r = 0; r < R; r++) {
-      const key = r + ',' + c, el = net.cells[key], pin = p[r]; if (!el) continue;
-      const P = pin === null ? 'FALSE' : pin; dIn[key] = P; let o;
-      switch (el.t) {
-        case 'W': o = pin; break;
-        case 'NO': o = andX(pin, op(el, 'op')); break;
-        case 'NC': o = andX(pin, 'NOT ' + op(el, 'op')); break;
-        case 'CMP': o = andX(pin, `(${op(el, 'a')} ${CMP_SCL[el.cmp] || '='} ${op(el, 'b')})`); break;
-        case 'P': case 'N': { const t = `#__n${ni}_${tc++}`; temps.push({ name: t.slice(1), type: 'Bool' });
-          const x = String(el.op ?? '').trim(), m = String(el.mem ?? '').trim();
-          if (!x || !m) { err(`${elLabel(el.t)}: ${!x ? 'Operand' : 'Flankenmerker'} fehlt`); o = andX(pin, 'FALSE'); break; }
-          emit(el.t === 'P' ? `${t} := ${x} AND NOT ${m};` : `${t} := NOT ${x} AND ${m};`); emit(`${m} := ${x};`); o = andX(pin, t); break; }
-        default: o = emitEl(el, P, emit, err, reg); if (o === P && pin === null) o = null;
-      }
-      out[r] = o ?? null; dOut[key] = o ?? 'FALSE';
-    }
-    const np = out.slice(); let r = 0;
-    while (r < R) { let e = r; while (e < R - 1 && net.links[e + ',' + (c + 1)]) e++;
-      if (e > r) { const parts = []; for (let k = r; k <= e; k++) if (out[k] !== null && !parts.includes(out[k])) parts.push(out[k]);
-        const v = parts.length === 0 ? null : parts.length === 1 ? parts[0] : '(' + parts.join(' OR ') + ')';
-        for (let k = r; k <= e; k++) { np[k] = v; if (k < e) dLink[k + ',' + (c + 1)] = v ?? 'FALSE'; } }
-      r = e + 1; }
-    p = np;
-  }
-  return { dIn, dOut, dLink };
-}
-function fbdExprIn(inp, err, disp) { const x = fbdExprN(inp.n, err, disp); const r = inp.neg ? 'NOT ' + par(x) : x; if (disp) disp.set(inp, r); return r; }
-function fbdExprN(n, err, disp) {
-  let r;
-  if (!n) { err('Eingang leer'); r = 'FALSE'; }
-  else if (n.t === 'OP') { const v = String(n.op || '').trim(); if (!v) { err('Operand fehlt'); r = 'FALSE'; } else r = v; }
-  else if (n.t === 'CMP') { const a = String(n.a || '').trim(), b = String(n.b || '').trim(); if (!a || !b) err('Vergleicher: Operand fehlt'); r = `(${a || '0'} ${CMP_SCL[n.cmp] || '='} ${b || '0'})`; }
-  else { const j = { AND: ' AND ', OR: ' OR ', XOR: ' XOR ' }[n.t]; const parts = (n.ins || []).map(i => par(fbdExprIn(i, err, disp)));
-    if (!parts.length) { err('Gatter ohne Eingänge'); r = 'FALSE'; } else r = parts.length === 1 ? parts[0] : '(' + parts.join(j) + ')'; }
-  if (disp && n) disp.set(n, r); return r;
-}
-function blockScl(b, reg) {
-  if (b.lang === 'SCL') return { text: b.scl || '', map: null, errs: [], temps: [], disp: null };
-  const lines = [], map = [], errs = [], temps = [], disp = [];
-  (b.networks || []).forEach((net, ni) => {
-    const start = lines.length + 1; lines.push(`// Netzwerk ${ni + 1}: ${(net.title || '').replace(/\n/g, ' ')}`);
-    const emit = s => lines.push(s), err = m => errs.push({ net: ni, msg: m });
-    if (b.lang === 'LAD') disp.push(ladGen(net, ni, reg, emit, err, temps));
-    else { const d = new Map(); const root = net.root || { t: 'COIL', in: { neg: false, n: { t: 'OP', op: '' } } };
-      const P = fbdExprIn(root.in, err, d); emitEl(root.t === 'ASSIGN' ? { ...root, t: 'COIL' } : root, P, emit, err, reg); disp.push(d); }
-    map.push({ from: start, to: lines.length, net: ni });
-  });
-  return { text: lines.join('\n'), map, errs, temps, disp };
-}
+function blockScl(b, reg) { return blockGen(b, reg); }
 
 /* ===================== Projekt übersetzen ===================== */
-const VALID_ADDR = { Bool: /^%[IQM]\d+\.[0-7]$/i, Byte: /^%[IQM]B\d+$/i, Int: /^%[IQM]W\d+$/i, UInt: /^%[IQM]W\d+$/i, Word: /^%[IQM]W\d+$/i, DInt: /^%[IQM]D\d+$/i, Real: /^%[IQM]D\d+$/i, Time: /^%[IQM]D\d+$/i, LReal: /^%[IQM]D\d+$/i };
+const A8 = /^%[IQM]B\d+$/i, A16 = /^%[IQM]W\d+$/i, A32 = /^%[IQM]D\d+$/i;
+const VALID_ADDR = { Bool: /^%[IQM]\d+\.[0-7]$/i, Byte: A8, SInt: A8, USInt: A8, Int: A16, UInt: A16, Word: A16, DInt: A32, UDInt: A32, DWord: A32, Real: A32, Time: A32, LReal: /^%[IQM]D\d+$/i };
 function compileProject(P) {
   const reg = buildReg(P), msgs = [], code = new Map();
   const M = (lvl, msg, o = {}) => msgs.push({ lvl, msg, ...o });
@@ -585,9 +533,9 @@ function compileProject(P) {
     const lo = t.name.toLowerCase(); if (names.has(lo)) M('err', `Name „${t.name}“ mehrfach vergeben`, { tags: 1 }); names.set(lo, 1);
     const ty = normType(t.type); if (!BASIC_TYPES.includes(ty)) M('err', `Variable „${t.name}“: Datentyp „${t.type}“ unbekannt`, { tags: 1 });
     if (!t.addr) M('warn', `Variable „${t.name}“ hat keine Adresse`, { tags: 1 });
-    else if (VALID_ADDR[ty] && !VALID_ADDR[ty].test(t.addr.trim())) M('warn', `Variable „${t.name}“: Adresse ${t.addr} passt nicht zu ${ty}`, { tags: 1 });
+    else if (VALID_ADDR[ty] && !VALID_ADDR[ty].test(normAddr(t.addr))) M('warn', `Variable „${t.name}“: Adresse ${t.addr} passt nicht zu ${ty}`, { tags: 1 });
     try { if (t.init) parseInit(t.init, ty, reg); } catch (e) { M('err', `Variable „${t.name}“: ${e.msg}`, { tags: 1 }); } }
-  const addrs = new Map(); for (const t of P.tags) if (t.addr) { const a = t.addr.trim().toUpperCase(); if (addrs.has(a)) M('warn', `Adresse ${a} doppelt belegt („${addrs.get(a)}“, „${t.name}“)`, { tags: 1 }); addrs.set(a, t.name); }
+  const addrs = new Map(); for (const t of P.tags) if (t.addr) { const a = normAddr(t.addr); if (addrs.has(a)) M('warn', `Adresse ${a} doppelt belegt („${addrs.get(a)}“, „${t.name}“)`, { tags: 1 }); addrs.set(a, t.name); }
   for (const b of P.blocks) { const lo = b.name.toLowerCase(); if (names.has(lo)) M('err', `Name „${b.name}“ mehrfach vergeben (Variable/Baustein)`, { block: b.name }); names.set(lo, 1); }
   const typeOk = (t, sec) => { const c = canonType(t, reg); if (BASIC_TYPES.includes(c)) return true;
     if (IEC[c] || (reg.blocks.get(c.toLowerCase()) || {}).type === 'FB') return sec === 'Static' || sec === 'Temp' || sec === 'InOut'; return false; };
@@ -602,13 +550,23 @@ function compileProject(P) {
       if (canonType(v.type, reg) === b.name) M('err', `FB „${b.name}“ kann sich nicht selbst als Instanz enthalten`, { block: b.name }); }
     if (b.type === 'DB' && b.instanceOf) { const c = canonType(b.instanceOf, reg); if (!IEC[c] && (reg.blocks.get(c.toLowerCase()) || {}).type !== 'FB') M('err', `Instanz-DB „${b.name}“: Typ „${b.instanceOf}“ ist kein FB`, { block: b.name }); }
     if (b.type === 'DB') continue;
-    const g = blockScl(b, reg); for (const e of g.errs) M('err', e.msg, { block: b.name, net: e.net });
+    if (b.lang === 'STL') {
+      const sc = makeScope(b, reg, []); let res;
+      try { res = compileAwlBlock(b, sc); } catch (e) { if (e instanceof SclError) res = { stmts: [], errs: [{ net: 0, line: e.line, msg: e.msg }], temps: [], mon: [] }; else throw e; }
+      for (const e of res.errs) M('err', e.msg, { block: b.name, net: e.net, nline: e.line });
+      for (const w of sc.warns) M('warn', w.msg, { block: b.name, net: w.net ?? 0, nline: w.line });
+      const localDefs = [...sc.vars.values()].filter(v => b.type === 'FB' ? v.sec === 'Temp' : true);
+      code.set(b.name.toLowerCase(), { block: b, stmts: res.stmts, sc, locals: localDefs, gen: { map: null, temps: [] }, awl: res });
+      continue;
+    }
+    const g = b.lang === 'SCL' ? { text: b.scl || '', map: null, errs: [], temps: [], disp: null } : blockGen(b, reg);
+    for (const e of g.errs) M('err', e.msg, { block: b.name, net: e.net });
     const sc = makeScope(b, reg, g.temps); let stmts = [];
     try { const ps = new Parser(lex(g.text)); const perr = []; const ast = ps.program(perr); sc.errs.push(...perr); stmts = compileList(ast, sc); }
     catch (e) { if (e instanceof SclError) sc.errs.push({ line: e.line, msg: e.msg }); else throw e; }
     const where = l => { if (!g.map) return { line: l }; const m = g.map.find(m => l >= m.from && l <= m.to); return { net: m ? m.net : 0 }; };
     for (const e of sc.errs) M('err', e.msg, { block: b.name, ...where(e.line) });
-    for (const w of sc.warns) M('warn', w.msg, { block: b.name, ...where(w.line) });
+    for (const w of sc.warns) if (!(g.map && sc.errs.some(e => e.line === w.line))) M('warn', w.msg, { block: b.name, ...where(w.line) });
     const localDefs = [...sc.vars.values()].filter(v => b.type === 'FB' ? v.sec === 'Temp' : true);
     code.set(b.name.toLowerCase(), { block: b, stmts, sc, locals: localDefs, gen: g });
   }
@@ -669,20 +627,30 @@ class PLC {
 function indent(s, n = 3) { const p = ' '.repeat(n); return s.split('\n').map(l => l ? p + l : l).join('\n'); }
 function declLine(v) { return `${v.name} : ${/^[A-Za-z_]\w*$/.test(v.type) && !IEC[normType(v.type)] && !BASIC_TYPES.includes(normType(v.type)) ? '"' + v.type + '"' : normType(v.type)}${v.init ? ' := ' + v.init : ''};${v.comment ? '   // ' + v.comment : ''}`; }
 const SEC_KW = { Input: 'VAR_INPUT', Output: 'VAR_OUTPUT', InOut: 'VAR_IN_OUT', Static: 'VAR', Temp: 'VAR_TEMP' };
-function genSource(P) {
+function srcHeader(b) {
+  return b.type === 'FB' ? [`FUNCTION_BLOCK "${b.name}"`, 'END_FUNCTION_BLOCK'] : b.type === 'FC' ? [`FUNCTION "${b.name}" : Void`, 'END_FUNCTION']
+    : [`ORGANIZATION_BLOCK "${b.name}"\nTITLE = "${(b.number | 0) === 100 ? 'Startup' : 'Main Program Sweep (Cycle)'}"`, 'END_ORGANIZATION_BLOCK'];
+}
+function srcVars(b, extraTemps) {
+  const secs = (SECTIONS[b.type] || []).map(s => [s, [...((b.iface && b.iface[s]) || [])]]);
+  if (extraTemps && extraTemps.length) { const t = secs.find(x => x[0] === 'Temp'); if (t) t[1].push(...extraTemps.map(x => ({ name: x.name, type: x.type }))); }
+  return secs.map(([s, vs]) => { if (!vs.length && b.type !== 'DB') return ''; return indent(`${SEC_KW[s]}\n${indent(vs.map(declLine).join('\n'))}\nEND_VAR`) + '\n'; }).join('');
+}
+// mode: 'scl' → SCL-, KOP- und FUP-Bausteine (KOP/FUP als SCL) + DBs; 'awl' → AWL-Bausteine
+function genSource(P, mode = 'scl') {
   const reg = buildReg(P), out = [];
   const order = { FB: 0, FC: 1, DB: 2, OB: 3 }; const blocks = [...P.blocks].sort((a, b) => order[a.type] - order[b.type] || (a.number | 0) - (b.number | 0));
   for (const b of blocks) {
-    const vars = (SECTIONS[b.type] || []).map(s => { const vs = (b.iface && b.iface[s]) || []; if (!vs.length && b.type !== 'DB') return ''; return indent(`${SEC_KW[s]}\n${indent(vs.map(declLine).join('\n'))}\nEND_VAR`) + '\n'; }).join('');
+    if (mode === 'awl' ? b.lang !== 'STL' : b.lang === 'STL') continue;
     if (b.type === 'DB') {
-      out.push(`DATA_BLOCK "${b.name}"\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\nNON_RETAIN\n${b.instanceOf ? (IEC[canonType(b.instanceOf, reg)] ? canonType(b.instanceOf, reg) : '"' + canonType(b.instanceOf, reg) + '"') + '\n' : vars}\nBEGIN\n\nEND_DATA_BLOCK\n`); continue; }
-    const g = blockScl(b, reg); let body = g.text; let tempDecl = '';
-    if (g.temps.length) tempDecl = indent(`VAR_TEMP\n${indent(g.temps.map(t => `${t.name} : Bool;`).join('\n'))}\nEND_VAR`) + '\n';
-    let v2 = vars; if (tempDecl) { if (/VAR_TEMP\n/.test(v2)) v2 = v2.replace(/(VAR_TEMP\n)/, '$1' + g.temps.map(t => `      ${t.name} : Bool;\n`).join('')); else v2 += tempDecl; }
-    const hdr = b.type === 'FB' ? `FUNCTION_BLOCK "${b.name}"` : b.type === 'FC' ? `FUNCTION "${b.name}" : Void` : `ORGANIZATION_BLOCK "${b.name}"\nTITLE = "${(b.number | 0) === 100 ? 'Startup' : 'Main Program Sweep (Cycle)'}"`;
-    const end = b.type === 'FB' ? 'END_FUNCTION_BLOCK' : b.type === 'FC' ? 'END_FUNCTION' : 'END_ORGANIZATION_BLOCK';
+      out.push(`DATA_BLOCK "${b.name}"\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\nNON_RETAIN\n${b.instanceOf ? (IEC[canonType(b.instanceOf, reg)] ? canonType(b.instanceOf, reg) : '"' + canonType(b.instanceOf, reg) + '"') + '\n' : srcVars(b)}\nBEGIN\n\nEND_DATA_BLOCK\n`); continue; }
+    const [hdr, end] = srcHeader(b);
+    if (b.lang === 'STL') {
+      const nets = (b.networks || []).map(n => `NETWORK\nTITLE = ${(n.title || '').replace(/\n/g, ' ')}\n${(n.comment ? '//' + n.comment.replace(/\n/g, ' ') + '\n' : '')}${String(n.awl || '').split('\n').map(l => { const t = l.replace(/\/\/.*$/, '').trim(); return !t || /;\s*$/.test(t) || /^[\w]+:\s*$/.test(t) || /^[()]/.test(t) ? l : l.replace(/(\S)(\s*(\/\/.*)?)$/, '$1;$2'); }).join('\n')}\n`).join('\n');
+      out.push(`${hdr}\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\n${srcVars(b)}\nBEGIN\n${nets}\n${end}\n`); continue; }
+    const g = b.lang === 'SCL' ? { text: b.scl || '', temps: [] } : blockGen(b, reg);
     const note = b.lang !== 'SCL' ? `// Automatisch aus ${b.lang === 'LAD' ? 'KOP' : 'FUP'} erzeugt\n` : '';
-    out.push(`${hdr}\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\n${v2}\nBEGIN\n${indent(note + body)}\nEND_${end.slice(4)}\n`);
+    out.push(`${hdr}\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\n${srcVars(b, g.temps)}\nBEGIN\n${indent(note + g.text)}\n${end}\n`);
   }
   return out.join('\n');
 }
@@ -702,10 +670,14 @@ function parseSource(text) {
     const b = { name, type, iface };
     if (type === 'DB') { const rem = head.replace(/\{[^}]*\}/g, '').replace(/\b(VAR[\s\S]*?END_VAR)\b/g, '').replace(/^\s*(VERSION|TITLE|AUTHOR|FAMILY|NAME)\s*[:=].*$/gim, '').replace(/\bNON_RETAIN\b|\bRETAIN\b/g, '').trim();
       if (rem) b.instanceOf = normType(rem.split(/\s+/)[0]); delete b.iface; if (!b.instanceOf) b.iface = { Static: iface.Static || [] }; }
+    else if (/^\s*NETWORK\b/m.test(body)) { b.lang = 'STL'; b.networks = body.split(/^\s*NETWORK\b.*$/m).slice(1).map(part => {
+        const lines = part.split('\n'); let title = '', comment = ''; const code = [];
+        for (const l of lines) { const t = l.trim(); const mt = /^TITLE\s*=\s*(.*)$/i.exec(t); if (mt && !code.length) { title = mt[1].trim(); continue; } if (/^(\/\/)/.test(t) && !code.length && !comment) { comment = t.slice(2).trim(); continue; } code.push(l); }
+        return { title, comment, awl: dedent(code.join('\n')).split('\n').map(l => l.replace(/;\s*(\/\/.*)?$/, (m, c) => c ? '   ' + c : '')).join('\n') }; }); }
     else { b.lang = 'SCL'; b.scl = dedent(body); }
     res.push(b);
   }
   return res;
 }
 
-if (typeof module !== 'undefined') module.exports = { lex, Parser, compileProject, PLC, genSource, parseSource, blockScl, buildReg, compileExprString, makeScope, IEC };
+if (typeof module !== 'undefined') module.exports = { lex, Parser, compileProject, PLC, genSource, parseSource, blockScl, buildReg, compileExprString, compileRefString, makeScope, IEC, SclError, PlcError, normType, canonType, ifaceVars, par, compileList, execList, coercer, normAddr, BUILTIN, NUMT, isIntT, isRealT, typeKind, defVal, parseInit, BASIC_TYPES, IEC_NAMES, SECTIONS, INTR };

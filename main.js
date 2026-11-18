@@ -42,7 +42,7 @@ function buildMenu() {
       { role: 'hide', label: 'SPS-Werkbank ausblenden' }, { role: 'hideOthers', label: 'Andere ausblenden' }, { role: 'unhide', label: 'Alle einblenden' },
       { type: 'separator' }, { role: 'quit', label: 'SPS-Werkbank beenden' }] }] : []),
     { label: 'Projekt', submenu: [
-      { label: 'Neu', accelerator: 'CmdOrCtrl+N', click: () => send('new') },
+      { label: 'Neues Projekt…', accelerator: 'CmdOrCtrl+N', click: () => send('new') },
       { label: 'Öffnen…', accelerator: 'CmdOrCtrl+O', click: () => send('open') },
       ...(isMac ? [{ role: 'recentDocuments', label: 'Zuletzt geöffnet', submenu: [{ role: 'clearRecentDocuments', label: 'Liste leeren' }] }] : []),
       { type: 'separator' },
@@ -50,9 +50,11 @@ function buildMenu() {
       { label: 'Speichern unter…', accelerator: 'CmdOrCtrl+Shift+S', click: () => send('saveAs') },
       { type: 'separator' },
       { label: 'Externe Quelle exportieren (.scl)…', accelerator: 'CmdOrCtrl+E', click: () => send('exportScl') },
-      { label: 'Externe Quelle importieren (.scl)…', accelerator: 'CmdOrCtrl+I', click: () => send('importScl') },
+      { label: 'Externe Quelle exportieren (.awl)…', click: () => send('exportAwl') },
+      { label: 'Externe Quelle importieren (.scl/.awl)…', accelerator: 'CmdOrCtrl+I', click: () => send('importScl') },
       { type: 'separator' },
-      { label: 'Beispielprojekt „Pumpstation“ öffnen', click: () => send('example') },
+      { label: 'Beispielprojekt laden…', click: () => send('example') },
+      { label: 'Projektsprache ändern…', click: () => send('lang') },
       ...(isMac ? [] : [{ type: 'separator' }, { role: 'quit', label: 'Beenden' }]),
     ] },
     { label: 'Bearbeiten', submenu: [

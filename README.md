@@ -37,7 +37,17 @@ npm run dist         # Installer für das aktuelle System → Ordner dist/
 
 Die Windows-Warnung fällt weg, sobald die App mit einem Code-Signing-Zertifikat (Authenticode) signiert wird.
 
-## Funktionen der Desktop-Version
+## Funktionen
+
+- **Vier Sprachen wie im TIA Portal:** KOP (Kontaktplan), FUP (Funktionsplan), SCL und AWL (Anweisungsliste, deutsche oder internationale Mnemonik)
+- **Projektsprache:** wird beim Anlegen eines neuen Projekts gewählt und lässt sich jederzeit für das ganze Projekt umstellen (Projektmenü am Logo). KOP ↔ FUP verlustfrei, KOP/FUP → AWL/SCL, AWL → KOP/FUP für darstellbare Netzwerke
+- **Anweisungsbibliothek** rechts, nach Kategorien wie die TIA-Basisanweisungen (Bitverknüpfungen, Zeiten, Zähler, Vergleicher, Mathematik, Übertragen, Umwandlung, Programmsteuerung, Wortverknüpfungen, Schieben/Rotieren, Projektbausteine) mit Suche, Beschreibung und Parameterliste; Einfügen per Klick oder Ziehen
+- **Boxen wie im Original:** EN/ENO, Instanz-DB über der Box, Datentyp unter dem Namen, erweiterbare Eingänge (ADD, MUL, AND …), negierbare Eingänge, Operanden direkt in der Grafik bearbeiten
+- **Simulierte CPU** mit RUN/STOP, Beobachten (Signalfluss in KOP/FUP, VKE und AKKU 1 je AWL-Zeile), Beobachtungstabelle und Simulation der Ein- und Ausgänge
+- **Variablentabelle** mit Registern Alle / Eingänge / Ausgänge / Merker
+- Austausch mit dem TIA Portal über externe Quellen (.scl und .awl)
+
+### Desktop-Version
 
 - Menüleiste: Projekt, Bearbeiten, Online, Ansicht, Hilfe
 - Projektdateien `.spsw` (Doppelklick öffnet sie in der App)
@@ -62,9 +72,13 @@ SPS-Werkbank ist kein Produkt der Siemens AG. „TIA Portal“ ist eine Marke de
 
 `app/index.html` wird aus `src/` erzeugt:
 
-- `src/core.js`: SCL-Lexer, Parser und Compiler, KOP/FUP→SCL, simulierte CPU, Import/Export externer Quellen
-- `src/ui.js`: Oberfläche (Editoren, Beobachtung, Desktop-Anbindung)
+- `src/core.js`: SCL-Lexer, Parser und Compiler, simulierte CPU, Import/Export externer Quellen
+- `src/instr.js`: Anweisungskatalog, Netzwerkmodell für KOP/FUP, Codeerzeugung, Sprachumwandlung
+- `src/awl.js`: AWL-Parser, -Compiler und -Laufzeit, Rückwandlung AWL → KOP/FUP
+- `src/editor.js`: grafische Editoren KOP/FUP, AWL-Editor, Anweisungsbibliothek
+- `src/ui.js`: Oberfläche (Projektmenü, Dialoge, Variablentabelle, Beobachtung, Desktop-Anbindung)
 - `src/example.js`: Beispielprojekt „Pumpstation“
 - `src/shell.html`: HTML-Gerüst und Stylesheet
 
-Nach Änderungen in `src/` neu erzeugen mit `python3 tools/build_html.py`.
+Nach Änderungen in `src/` neu erzeugen mit `python3 tools/build_html.py` (erzeugt auch `web/index.html`).
+Tests des Kerns: `node tools/test_core.js`.
