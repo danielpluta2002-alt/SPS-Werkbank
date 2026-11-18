@@ -15,8 +15,8 @@ GitHub baut alle drei Installer kostenlos:
    - `SPS-Werkbank-macOS`: `.dmg` für Intel (`x64`) und Apple Silicon (`arm64`)
    - `SPS-Werkbank-Linux`: `.AppImage` und `.deb`
 
-Ein Git-Tag wie `v1.0.0` legt zusätzlich automatisch ein GitHub-Release mit allen Dateien an:
-`git tag v1.0.0 && git push --tags`.
+Jeder Lauf legt außerdem ein GitHub-Release **v<Version>** (Version aus `package.json`) mit allen Installern an.
+Für eine neue Version die Versionsnummer in `package.json` erhöhen und den Workflow erneut starten.
 
 ## Selbst bauen (lokal)
 
