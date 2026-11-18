@@ -1,18 +1,17 @@
-# SPS-Werkbank – Desktop-App für Windows, macOS und Linux
+# SPS-Werkbank – Desktop-App für Windows und Linux
 
 Programmierumgebung für KOP, FUP und SCL mit simulierter CPU. Die App läuft komplett offline.
 Den Austausch mit dem TIA Portal übernehmen externe SCL-Quellen (`.scl`).
 
 ## Installer bauen lassen (empfohlen, über GitHub)
 
-GitHub baut alle drei Installer kostenlos:
+GitHub baut die Installer kostenlos:
 
 1. Ein neues Repository auf GitHub anlegen und den **Inhalt dieses Ordners** hochladen,
    einschließlich des versteckten Ordners `.github`.
 2. Im Repository auf **Actions → „Installer bauen“ → Run workflow** klicken.
-3. Nach ca. 5–10 Minuten liegen unten im Workflow-Lauf unter **Artifacts** drei Pakete:
+3. Nach ca. 5 Minuten liegen unten im Workflow-Lauf unter **Artifacts** zwei Pakete:
    - `SPS-Werkbank-Windows`: Installer (`…-win-x64.exe`) und portable Version (`…-portable.exe`)
-   - `SPS-Werkbank-macOS`: `.dmg` für Intel (`x64`) und Apple Silicon (`arm64`)
    - `SPS-Werkbank-Linux`: `.AppImage` und `.deb`
 
 Jeder Lauf legt außerdem ein GitHub-Release **v<Version>** (Version aus `package.json`) mit allen Installern an.
@@ -20,7 +19,7 @@ Für eine neue Version die Versionsnummer in `package.json` erhöhen und den Wor
 
 ## Selbst bauen (lokal)
 
-Voraussetzung ist Node.js ab Version 20. Jedes System baut seinen eigenen Installer, einen macOS-Installer gibt es also nur auf einem Mac.
+Voraussetzung ist Node.js ab Version 20. Jedes System baut seinen eigenen Installer.
 
 ```bash
 npm install
@@ -33,12 +32,10 @@ npm run dist         # Installer für das aktuelle System → Ordner dist/
 | System | Datei | Hinweis |
 |---|---|---|
 | Windows 10/11 | `SPS-Werkbank-1.0.0-win-x64.exe` | Erscheint „Der Computer wurde durch Windows geschützt“: **Weitere Informationen → Trotzdem ausführen** (die App ist nicht signiert). |
-| macOS 11+ | `.dmg` (`arm64` = M1/M2/M3/M4, `x64` = Intel) | App in „Programme“ ziehen. Beim ersten Start: Rechtsklick → **Öffnen**. Meldet macOS „beschädigt“, im Terminal ausführen: `xattr -cr /Applications/SPS-Werkbank.app` |
 | Linux | `.AppImage` | `chmod +x SPS-Werkbank-*.AppImage` und starten. |
 | Debian/Ubuntu | `.deb` | `sudo apt install ./SPS-Werkbank-*.deb` |
 
-Die Warnungen bei Windows und macOS fallen weg, sobald die App mit einem Code-Signing-Zertifikat signiert wird
-(Windows: Authenticode-Zertifikat, macOS: Apple-Developer-Konto mit Notarisierung).
+Die Windows-Warnung fällt weg, sobald die App mit einem Code-Signing-Zertifikat (Authenticode) signiert wird.
 
 ## Funktionen der Desktop-Version
 
@@ -48,7 +45,6 @@ Die Warnungen bei Windows und macOS fallen weg, sobald die App mit einem Code-Si
   - Strg+B: Übersetzen · Strg+L: Laden in CPU · F5: RUN · Umschalt+F5: STOP
   - Strg+E / Strg+I: externe Quelle exportieren/importieren
 - Rückfrage bei ungespeicherten Änderungen beim Schließen
-- Auf dem Mac gilt **Cmd** statt Strg
 
 ## Aufbau
 

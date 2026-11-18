@@ -16,7 +16,6 @@ jobs:
       matrix:
         include:
           - { os: windows-latest, name: Windows }
-          - { os: macos-latest,   name: macOS }
           - { os: ubuntu-latest,  name: Linux }
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,8 +33,6 @@ jobs:
           name: SPS-Werkbank-${{ matrix.name }}
           path: |
             dist/*.exe
-            dist/*.dmg
-            dist/*.zip
             dist/*.AppImage
             dist/*.deb
           if-no-files-found: error
@@ -58,5 +55,5 @@ jobs:
           target_commitish: ${{ github.sha }}
           files: out/*
           body: |
-            Installer für Windows (.exe), macOS (.dmg für Apple Silicon und Intel) und Linux (.AppImage, .deb).
-            Hinweise zur Installation unsigned Apps: siehe README.
+            Installer für Windows (.exe) und Linux (.AppImage, .deb).
+            Hinweise zur Installation nicht signierter Apps: siehe README.
