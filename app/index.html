@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPS-Werkbank – KOP, FUP &amp; SCL</title>
+<style>
+:root{--bg:#e9edf1;--pane:#fff;--line:#d3dae2;--ink:#18222d;--mute:#5d6b79;--acc:#1f5fbf;--acc2:#e8f0fc;--top:#1c2731;--top2:#26333f;--on:#14a34a;--onbg:#dff5e7;--off:#7b8794;--err:#d23b2f;--warn:#c98400;--mono:'IBM Plex Mono',Consolas,'Cascadia Mono',Menlo,'DejaVu Sans Mono',ui-monospace,monospace;--lh:20px;--fs:13px}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font:14px/1.4 'IBM Plex Sans','Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;color:var(--ink);background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:5px 10px}
+button:hover{border-color:#a9b6c3}button.pri{background:var(--acc);border-color:var(--acc);color:#fff}button.danger{color:var(--err)}
+input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono)}
+/* Kopf */
+#top{background:var(--top);color:#e8eef4;display:flex;align-items:center;gap:10px;padding:7px 12px;flex-wrap:wrap;border-bottom:3px solid #f0a020}
+#top .brand{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+#top .logo{width:20px;height:20px;border-radius:4px;background:linear-gradient(135deg,#f0a020 0 50%,#4b8fe8 50%);display:inline-block}
+#top .pname{background:var(--top2);border:1px solid #3a4957;color:#fff;border-radius:6px;padding:4px 8px;width:170px}
+#top .tb{display:flex;gap:4px;flex-wrap:wrap}
+#top .tb button{background:var(--top2);border-color:#3a4957;color:#e8eef4;display:flex;gap:6px;align-items:center}
+#top .tb button:hover{background:#31414f}
+#top .tb .run.act{background:#155f33;border-color:#1f8a4a}#top .tb .stop.act{background:#6b3d06;border-color:#a8650c}#top .tb .mon.act{background:#1d4580;border-color:#3069c1}
+#top .i{font-size:13px}
+#top .navt{display:none;background:none;border:0;color:#fff;font-size:20px;padding:2px 6px}
+.cpu{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;background:var(--top2);padding:4px 10px;border-radius:20px;white-space:nowrap}
+.cpu .led{width:10px;height:10px;border-radius:50%;background:#f0a020;box-shadow:0 0 6px #f0a020}.cpu.RUN .led{background:#2ad16a;box-shadow:0 0 8px #2ad16a}
+.cpu .cyc{color:#9fb0c0;font-family:var(--mono)}.sync{color:#9fb0c0}.sync.ok{color:#7fdc9f}.sync.bad{color:#ffb04a}
+/* Layout */
+#wrap{flex:1;display:flex;min-height:0;position:relative}
+#nav{width:250px;background:var(--pane);border-right:1px solid var(--line);overflow:auto;flex-shrink:0}
+.navh{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mute);padding:10px 12px 4px;font-weight:600}
+.tn{padding:5px 12px;display:flex;align-items:center;gap:7px;white-space:nowrap;overflow:hidden}
+.tn small{color:var(--mute);font-size:11px;margin-left:auto}
+.tn.root{font-weight:600}.tn.root small{margin-left:4px;overflow:hidden;text-overflow:ellipsis}
+.tn.grp{font-size:12px;color:var(--mute);font-weight:600;padding-top:10px}
+.tn.item{cursor:pointer;padding-left:20px;border-left:3px solid transparent}.tn.item:hover{background:#f2f5f8}.tn.item.sel{background:var(--acc2);border-left-color:var(--acc)}
+.tn.add{cursor:pointer;padding-left:20px;color:var(--acc);font-weight:500}
+.tn .bn{overflow:hidden;text-overflow:ellipsis}
+.tn .dot{width:8px;height:8px;border-radius:50%;background:var(--err);flex-shrink:0}
+.bt{font:600 10px var(--mono);padding:2px 4px;border-radius:3px;color:#fff;background:#6c7a89}.bt.OB{background:#7b4fc4}.bt.FB{background:#1f5fbf}.bt.FC{background:#0c8a7d}.bt.DB{background:#b0701a}
+.ico{width:14px;height:14px;border-radius:3px;display:inline-block;flex-shrink:0;background:#c7d0d9}.cpu-i{background:#26333f}.tag-i{background:repeating-linear-gradient(#8fa1b3 0 2px,transparent 2px 4px)}.watch-i{border-radius:50%;background:radial-gradient(#14a34a 35%,#cfe9d8 40%)}.diag-i{background:#f0a020}.src-i{background:#4b8fe8}
+#ed{flex:1;overflow:auto;padding:14px 18px 40px;min-width:0}
+#scrim{display:none}
+/* Info */
+#info{background:var(--pane);border-top:1px solid var(--line);max-height:34px;transition:max-height .2s;overflow:hidden;flex-shrink:0}
+#info.open{max-height:32vh}
+.infoh{display:flex;gap:10px;align-items:center;padding:7px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}
+.infoh .cnt.e{color:var(--err)}.infoh .cnt.w{color:var(--warn)}.infoh .chev{margin-left:auto}
+.infob{overflow:auto;max-height:calc(32vh - 34px)}
+.msg{display:flex;gap:10px;padding:5px 14px;font-size:13px;border-bottom:1px solid #eef1f4;cursor:pointer}.msg:hover{background:#f5f7f9}
+.msg .mi{width:14px}.msg.err .mi{color:var(--err)}.msg.warn .mi{color:var(--warn)}.msg.ok .mi{color:var(--on)}
+.msg .mw{color:var(--mute);min-width:120px;font-family:var(--mono);font-size:12px}
+/* Editor */
+.edh{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.edh h2{margin:0;font-size:19px;display:flex;align-items:center;gap:8px}.edh h2 small{font-weight:400;color:var(--mute);font-size:13px}
+.edh .sub{color:var(--mute);font-size:13px;margin-top:2px}.edh .acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.hint{color:var(--mute)}.hint.small,.small{font-size:12.5px}
+.tw{overflow:auto;background:var(--pane);border:1px solid var(--line);border-radius:8px}
+table.grid{border-collapse:collapse;width:100%;font-size:13px}
+.grid th{background:#f3f6f9;text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px;color:#3a4856}
+.grid td{border-bottom:1px solid #edf0f3;padding:2px 4px}
+.grid input,.grid select{width:100%;border:1px solid transparent;background:transparent;padding:4px 5px;border-radius:4px;min-width:70px}
+.grid input:hover,.grid select:hover{border-color:var(--line)}.grid input:focus{border-color:var(--acc);background:#fff;outline:none}
+.grid tr.sec td{background:#f8fafb;font-weight:600;font-size:12px;padding:5px 8px}.grid tr.sec button{margin-left:10px}
+.grid tr.err td{color:var(--err)}.grid tr.warn td{color:var(--warn)}
+td.live,th.live{min-width:110px}td.live{color:#1d4580;font-size:12.5px;padding-left:8px}td.live.t{color:var(--on);font-weight:600}
+body:not(.live) td.live,body:not(.live) th.live{display:none}
+button.x{border:0;background:none;color:#9aa6b2;padding:4px 8px}button.x:hover{color:var(--err)}
+button.mini{padding:2px 8px;font-size:12px}
+details.iface{background:var(--pane);border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
+details.iface summary{padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px}
+details.iface .tw{border:0;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+/* SCL */
+.sclt{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}.snip{font:500 12px var(--mono);padding:3px 8px}
+.scl{display:flex;background:#fbfcfd;border:1px solid var(--line);border-radius:8px;max-height:calc(100vh - 250px);min-height:260px;overflow:auto;font:var(--fs)/var(--lh) var(--mono)}
+.gut{position:sticky;left:0;background:#f0f3f6;color:#94a1ae;text-align:right;padding:8px 8px 8px 10px;user-select:none;border-right:1px solid var(--line);z-index:2;min-height:100%;height:max-content}
+.gut div{height:var(--lh)}.gut div.e{color:#fff;background:var(--err);border-radius:3px}
+.code{position:relative;flex:1;min-width:max-content}
+.code pre{margin:0;padding:8px 12px 40px;white-space:pre;pointer-events:none;font:inherit;min-height:100%}
+.code textarea{position:absolute;inset:0;width:100%;height:100%;padding:8px 12px 40px;border:0;resize:none;background:transparent;color:transparent;caret-color:#111;font:inherit;white-space:pre;overflow:hidden;outline:none;z-index:1}
+.code textarea::selection{background:rgba(31,95,191,.25);color:transparent}
+.errlay .el{position:absolute;left:0;right:0;height:var(--lh);background:rgba(210,59,47,.12);border-left:3px solid var(--err)}.errlay .el.warn{background:rgba(201,132,0,.12);border-left-color:var(--warn)}
+i{font-style:normal}i.c{color:#6a8a5a;font-style:italic}i.g{color:#b0701a}i.s{color:#a33d8b}i.l{color:#1f5fbf}i.n{color:#0c8a7d}i.k{color:#7b2fbf;font-weight:600}i.f{color:#c0392b}
+.errlist{margin-top:8px;background:var(--pane);border:1px solid var(--line);border-radius:8px}
+.srcpre{background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:12.5px/1.5 var(--mono);overflow:auto;max-height:55vh;margin:6px 0 0}
+/* Werkzeuge */
+.tools{position:sticky;top:-14px;z-index:5;background:var(--bg);display:flex;gap:10px;padding:6px 0 8px;overflow-x:auto;flex-wrap:wrap}
+.tg{display:flex;gap:3px;align-items:center;background:var(--pane);border:1px solid var(--line);border-radius:8px;padding:4px 6px}
+.tg>span{font-size:10.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;margin-right:4px;font-weight:600}
+.tl{font:600 12px var(--mono);padding:4px 7px;white-space:nowrap}
+.net{background:var(--pane);border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:8px 10px 10px}
+.net.bad{border-color:#e6a49d;box-shadow:inset 3px 0 0 var(--err)}.net.flash{animation:fl 1.2s}@keyframes fl{0%{background:#fff4d6}100%{background:#fff}}
+.neth{display:flex;align-items:center;gap:8px;font-size:13px}.neth .ntitle{flex:1;min-width:80px;border:1px solid transparent;border-radius:5px;padding:3px 6px;font-weight:500}.neth .ntitle:hover,.ncom:hover{border-color:var(--line)}
+.nacts{display:flex;gap:3px}.ncom{width:100%;border:1px solid transparent;border-radius:5px;padding:2px 6px;color:var(--mute);font-size:12.5px;margin:2px 0 4px}
+.nerr{font-size:12.5px;margin:4px 0}.nerr .err{color:var(--err)}.nerr .warn{color:var(--warn)}
+.ladw,.fbdw{overflow-x:auto;padding:4px 0}
+svg.lad{display:block}
+svg.lad .hit{fill:transparent;cursor:pointer}svg.lad .hit:hover{fill:rgba(31,95,191,.05)}
+svg.lad .selr{fill:var(--acc2);stroke:var(--acc);stroke-dasharray:4 3}
+svg.lad .ph{stroke:#e3e8ee;stroke-dasharray:2 4}
+svg.lad .rail{stroke:#2b3a48;stroke-width:4}
+svg.lad .w,svg.lad .sym line,svg.lad .sym path{stroke:#2b3a48;stroke-width:2;fill:none}
+svg.lad .box{fill:#fff;stroke:#2b3a48;stroke-width:1.6}
+svg.lad text{font-family:var(--mono);fill:#2b3a48}svg.lad .opd{font-size:11px;fill:#1f5fbf}svg.lad .opd.s{font-size:10px;fill:#5d6b79}
+svg.lad .sl{font-size:11px;font-weight:600}svg.lad .bt2{font-size:11px;font-weight:600}svg.lad .pin{font-size:9px;fill:#5d6b79}svg.lad .prm{font-size:9.5px;fill:#1f5fbf}svg.lad .pk{fill:#5d6b79}
+body.live svg.lad .w.on,body.live svg.lad .sym.on line,body.live svg.lad .sym.on path{stroke:var(--on)}
+body.live svg.lad .w.off,body.live svg.lad .sym.off line,body.live svg.lad .sym.off path{stroke:#4c78c9;stroke-dasharray:5 3}
+body.live svg.lad .box.on{stroke:var(--on);fill:var(--onbg)}
+.nsize{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--mute);margin-top:4px}.nsize span{margin-left:8px}
+.props{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}.ph2{font-weight:600;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end}.pf label{display:flex;flex-direction:column;font-size:11.5px;color:var(--mute);gap:2px}
+.pf input,.pf select{border:1px solid var(--line);border-radius:5px;padding:4px 6px;width:170px;color:var(--ink);font-size:13px}
+.addnet{width:100%;padding:10px;border-style:dashed;color:var(--acc);background:transparent;margin-top:6px}
+/* FUP */
+.fbd{display:flex;align-items:center;padding:6px 4px;width:max-content}
+.fpin{display:flex;align-items:center}.fsrc{flex:0 0 auto}.qf{margin-left:8px}
+.fsrc{display:flex;align-items:center;justify-content:flex-end}
+.fw{flex:1 0 26px;height:22px;position:relative;cursor:pointer;flex-shrink:0}.fw i{position:absolute;left:0;right:0;top:10px;height:2px;background:#2b3a48}
+.fw.neg::after{content:'';position:absolute;right:-5px;top:5px;width:9px;height:9px;border:2px solid #2b3a48;border-radius:50%;background:#fff;box-sizing:border-box}
+.fw.sel{background:var(--acc2);border-radius:4px;outline:1px dashed var(--acc)}
+body.live .fw.on i{background:var(--on)}body.live .fw.off i{background:#4c78c9}
+.fgate{display:flex;align-items:stretch}.fins{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 0}
+.fbx{border:1.6px solid #2b3a48;background:#fff;border-radius:3px;min-width:46px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 6px;cursor:pointer;font-family:var(--mono);font-size:13px}
+.fbx.sel{outline:2px dashed var(--acc);outline-offset:2px}
+body.live .fbx.on{border-color:var(--on);background:var(--onbg)}
+.fbx.rootb{min-height:44px;justify-content:center}.fbx.wide{align-items:stretch;cursor:default}.fbx.wide b{text-align:center}
+.fbx.wide .pf{flex-direction:column;align-items:stretch;gap:4px;margin-top:4px}.fbx.wide .pf input,.fbx.wide .pf select{width:160px}
+.froot{display:flex;flex-direction:column;align-items:center;gap:4px}
+.fop{width:190px;border:1px solid var(--line);border-radius:5px;padding:4px 6px;font-size:12.5px;color:#1f5fbf}.fop.top{text-align:center}
+.fcmp{display:flex;align-items:stretch;gap:0}.fcmpin{display:flex;flex-direction:column;gap:4px;justify-content:center;margin-right:6px}.fcmp .fop{width:120px}
+.fbx select{border:1px solid var(--line);border-radius:4px;font-size:12px;margin-top:3px}
+.rsel{border:1px solid var(--line);border-radius:5px;padding:3px}
+/* Beobachtung */
+.panel{background:var(--pane);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px}.panel .tw{border-radius:6px}
+.ph2 .sp{flex:1}.sw{font-weight:400;font-size:12.5px;color:var(--mute);margin-left:auto;display:flex;gap:5px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{display:flex;flex-direction:column;align-items:flex-start;padding:8px 12px;border-radius:9px;border:1.5px solid var(--line);background:#f6f8fa;min-width:120px;user-select:none;touch-action:manipulation}
+.chip b{font-size:13px;font-weight:600}.chip small{font-family:var(--mono);color:var(--mute);font-size:11px}
+body.live .chip.on{background:var(--onbg);border-color:var(--on)}body.live .chip.on b::before{content:'● ';color:var(--on)}
+.chip.out{cursor:default}body.live .chip.out.on{background:#fff3cf;border-color:#f0a020}body.live .chip.out.on b::before{color:#f0a020}
+.ana{display:grid;grid-template-columns:150px 70px 1fr 90px;gap:10px;align-items:center;margin-bottom:10px;font-size:13px}.ana small{font-family:var(--mono);color:var(--mute)}
+.banner{background:#fff6e0;border:1px solid #f1d394;border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cpup{display:flex;gap:20px;flex-wrap:wrap;align-items:center}.cpubig{font:700 26px var(--mono);display:flex;align-items:center;gap:10px}.cpubig .led{width:18px;height:18px;border-radius:50%;background:#f0a020}.cpubig.RUN .led{background:#2ad16a;box-shadow:0 0 10px #2ad16a}
+.cpub{display:flex;gap:6px;flex-wrap:wrap}.cpub .run{background:#155f33;color:#fff;border-color:#155f33}.cpub .stop{background:#a8650c;color:#fff;border-color:#a8650c}
+table.kv td{padding:3px 10px 3px 0;font-size:13px}
+textarea.imp{width:100%;min-height:110px;margin:6px 0;border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12.5px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+/* Dialog & Toast */
+#modal{position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}#modal.on{display:flex}
+.mbox{background:#fff;border-radius:12px;padding:18px 20px;width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.mbox h3{margin:0 0 12px}.mbtn{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.fl{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--mute);margin:10px 0}.fl input,.fl select{border:1px solid var(--line);border-radius:6px;padding:7px 8px;color:var(--ink);font-size:14px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.seg label{cursor:pointer}.seg input{display:none}
+.seg span{display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:8px;padding:8px;font-size:11px;color:var(--mute);height:100%}.seg span b{font:700 16px var(--mono);color:var(--ink)}
+.seg input:checked+span{border-color:var(--acc);background:var(--acc2)}
+#toast{position:fixed;bottom:50px;left:50%;transform:translate(-50%,20px);background:#1c2731;color:#fff;padding:9px 16px;border-radius:8px;font-size:13.5px;opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:90vw}
+#toast.show{opacity:1;transform:translate(-50%,0)}#toast.err{background:#a52a20}#toast.ok{background:#155f33}#toast.warn{background:#8a5a00}
+/* Mobil */
+@media (max-width:820px){
+  :root{--fs:16px;--lh:22px}
+  #top{gap:6px;padding:6px 8px}#top .navt{display:block}#top .pname{display:none}#top .tb .t{display:none}#top .tb button{padding:6px 10px}
+  .cpu{margin-left:0;width:100%;justify-content:center}.cpu .sync{font-size:11.5px}
+  #nav{position:absolute;left:0;top:0;bottom:0;z-index:30;transform:translateX(-102%);transition:transform .2s;box-shadow:4px 0 20px rgba(0,0,0,.2);width:min(300px,86vw)}
+  #nav.open{transform:none}#scrim.on{display:block;position:absolute;inset:0;background:rgba(0,0,0,.3);z-index:20}
+  #ed{padding:10px 10px 40px}.tools{flex-wrap:nowrap;top:-10px}.msg .mw{min-width:80px}
+  .grid input,.grid select{font-size:16px}.pf input,.pf select,.fop{font-size:16px}.ana{grid-template-columns:1fr 60px;}.ana input{grid-column:1/-1}
+  .seg{grid-template-columns:repeat(2,1fr)}.edh .acts{margin-left:0}
+}
+</style>
+</head>
+<body>
+<header id="top"></header>
+<div id="wrap"><nav id="nav"></nav><div id="scrim"></div><main id="ed"></main></div>
+<section id="info"></section>
+<div id="modal"></div><div id="toast"></div>
+<datalist id="typelist"></datalist><datalist id="oplist"></datalist>
+<script>
+'use strict';
+/* ===================== Typen & IEC-Bausteine ===================== */
+const INTR = { Int: [-32768, 32767], DInt: [-2147483648, 2147483647], UInt: [0, 65535], Word: [0, 65535], Byte: [0, 255], Time: [-2147483648, 2147483647] };
+const NUMT = new Set(['Int', 'DInt', 'UInt', 'Word', 'Byte', 'Real', 'LReal', 'Time']);
+const BASIC_TYPES = ['Bool', 'Int', 'DInt', 'UInt', 'Word', 'Byte', 'Real', 'LReal', 'Time'];
+const TYPE_ALIAS = { bool: 'Bool', int: 'Int', dint: 'DInt', uint: 'UInt', word: 'Word', byte: 'Byte', real: 'Real', lreal: 'LReal', time: 'Time',
+  ton_time: 'TON_TIME', ton: 'TON_TIME', tof_time: 'TOF_TIME', tof: 'TOF_TIME', tp_time: 'TP_TIME', tp: 'TP_TIME',
+  ctu_int: 'CTU_INT', ctu: 'CTU_INT', ctd_int: 'CTD_INT', ctd: 'CTD_INT', r_trig: 'R_TRIG', f_trig: 'F_TRIG' };
+const IEC = {
+  TON_TIME: { ins: { IN: 'Bool', PT: 'Time' }, outs: { Q: 'Bool', ET: 'Time' }, run(s, now) {
+    if (s.IN) { if (!s._r) { s._r = 1; s._t = now; } s.ET = Math.min(Math.round(now - s._t), s.PT); s.Q = s.ET >= s.PT; }
+    else { s._r = 0; s.ET = 0; s.Q = false; } } },
+  TOF_TIME: { ins: { IN: 'Bool', PT: 'Time' }, outs: { Q: 'Bool', ET: 'Time' }, run(s, now) {
+    if (s.IN) { s.Q = true; s.ET = 0; s._r = 0; }
+    else if (s.Q) { if (!s._r) { s._r = 1; s._t = now; } s.ET = Math.min(Math.round(now - s._t), s.PT); if (s.ET >= s.PT) s.Q = false; } } },
+  TP_TIME: { ins: { IN: 'Bool', PT: 'Time' }, outs: { Q: 'Bool', ET: 'Time' }, run(s, now) {
+    if (!s._a && s.IN && !s._p) { s._a = 1; s._t = now; }
+    if (s._a) { s.ET = Math.round(now - s._t); if (s.ET >= s.PT) { s.ET = s.PT; s.Q = false; s._a = 0; } else s.Q = true; }
+    else if (!s.IN) s.ET = 0;
+    s._p = s.IN; } },
+  CTU_INT: { ins: { CU: 'Bool', R: 'Bool', PV: 'Int' }, outs: { Q: 'Bool', CV: 'Int' }, run(s) {
+    if (s.R) s.CV = 0; else if (s.CU && !s._p && s.CV < 32767) s.CV++;
+    s._p = s.CU; s.Q = s.CV >= s.PV; } },
+  CTD_INT: { ins: { CD: 'Bool', LD: 'Bool', PV: 'Int' }, outs: { Q: 'Bool', CV: 'Int' }, run(s) {
+    if (s.LD) s.CV = s.PV; else if (s.CD && !s._p && s.CV > -32768) s.CV--;
+    s._p = s.CD; s.Q = s.CV <= 0; } },
+  R_TRIG: { ins: { CLK: 'Bool' }, outs: { Q: 'Bool' }, run(s) { s.Q = !!s.CLK && !s._m; s._m = !!s.CLK; } },
+  F_TRIG: { ins: { CLK: 'Bool' }, outs: { Q: 'Bool' }, run(s) { s.Q = !s.CLK && !!s._m; s._m = !!s.CLK; } },
+};
+const IEC_NAMES = Object.keys(IEC);
+const SECTIONS = { OB: ['Temp'], FC: ['Input', 'Output', 'InOut', 'Temp'], FB: ['Input', 'Output', 'InOut', 'Static', 'Temp'], DB: ['Static'] };
+
+class SclError { constructor(msg, line) { this.msg = msg; this.line = line; } }
+class PlcError extends Error {}
+
+function normType(t) { const s = String(t || '').trim().replace(/^"|"$/g, ''); return TYPE_ALIAS[s.toLowerCase()] || s; }
+function canonType(t, reg) {
+  const n = normType(t); if (TYPE_ALIAS[n.toLowerCase()] || IEC[n]) return n;
+  const b = reg.blocks.get(n.toLowerCase()); return b ? b.name : n;
+}
+function typeKind(t, reg) {
+  if (t === 'Bool') return 'bool'; if (NUMT.has(t)) return 'num'; if (IEC[t]) return 'iec';
+  if (t.startsWith('DB:')) return 'db';
+  const b = reg.blocks.get(t.toLowerCase()); if (b && b.type === 'FB') return 'fb';
+  return null;
+}
+function isIntT(t) { return !!INTR[t]; }
+function isRealT(t) { return t === 'Real' || t === 'LReal'; }
+
+/* ===================== Lexer ===================== */
+function parseTime(body, line) {
+  let s = body.replace(/_/g, ''), neg = false; if (s[0] === '-') { neg = true; s = s.slice(1); }
+  const re = /(\d+(?:\.\d+)?)(ms|d|h|m|s)/gi; let m, total = 0, used = 0;
+  while ((m = re.exec(s))) { if (m.index !== used) break; used = re.lastIndex;
+    const f = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }[m[2].toLowerCase()]; total += parseFloat(m[1]) * f; }
+  if (!s || used !== s.length) throw new SclError('Ungültiges Zeitliteral „T#' + body + '“', line);
+  return Math.round(neg ? -total : total);
+}
+function lex(src) {
+  const toks = []; let i = 0, line = 1; const n = src.length;
+  const idc = ch => /[A-Za-z0-9_]/.test(ch || '');
+  while (i < n) {
+    const c = src[i];
+    if (c === '\n') { line++; i++; continue; }
+    if (c === ' ' || c === '\t' || c === '\r') { i++; continue; }
+    if (c === '/' && src[i + 1] === '/') { while (i < n && src[i] !== '\n') i++; continue; }
+    if ((c === '(' && src[i + 1] === '*') || (c === '/' && src[i + 1] === '*')) {
+      const end = c === '(' ? '*)' : '*/'; const l0 = line; i += 2;
+      while (i < n && src.substr(i, 2) !== end) { if (src[i] === '\n') line++; i++; }
+      if (i >= n) throw new SclError('Kommentar nicht abgeschlossen', l0); i += 2; continue; }
+    if (c === '"') { let j = i + 1; while (j < n && src[j] !== '"' && src[j] !== '\n') j++;
+      if (src[j] !== '"') throw new SclError('Schließendes " fehlt', line);
+      toks.push({ t: 'qid', v: src.slice(i + 1, j), line }); i = j + 1; continue; }
+    if (c === "'") { let j = i + 1; while (j < n && src[j] !== "'" && src[j] !== '\n') j++;
+      if (src[j] !== "'") throw new SclError("Schließendes ' fehlt", line);
+      toks.push({ t: 'str', v: src.slice(i + 1, j), line }); i = j + 1; continue; }
+    if (c === '#') {
+      if (src[i + 1] === '"') { let j = i + 2; while (j < n && src[j] !== '"' && src[j] !== '\n') j++;
+        toks.push({ t: 'lid', v: src.slice(i + 2, j), line }); i = j + 1; continue; }
+      let j = i + 1; while (idc(src[j])) j++;
+      if (j === i + 1) throw new SclError('Name nach # erwartet', line);
+      toks.push({ t: 'lid', v: src.slice(i + 1, j), line }); i = j; continue; }
+    if (/[A-Za-z_]/.test(c)) {
+      let j = i; while (idc(src[j])) j++; const w = src.slice(i, j);
+      if (src[j] === '#') {
+        const pre = w.toUpperCase(); let k = j + 1; while (k < n && /[A-Za-z0-9_.\-]/.test(src[k])) k++;
+        const body = src.slice(j + 1, k);
+        if (pre === 'T' || pre === 'TIME') toks.push({ t: 'num', v: parseTime(body, line), ty: 'Time', line });
+        else if (pre === 'BOOL') toks.push({ t: 'num', v: /^(1|true)$/i.test(body), ty: 'Bool', line });
+        else { let v; if (/^\d+#/.test(body)) { const [b, d] = body.split('#'); v = parseInt(d.replace(/_/g, ''), +b); } else v = parseFloat(body.replace(/_/g, ''));
+          if (isNaN(v)) throw new SclError('Ungültiges Literal „' + w + '#' + body + '“', line);
+          const ty = normType(pre); toks.push({ t: 'num', v, ty: NUMT.has(ty) ? ty : (body.includes('.') ? 'Real' : 'Int'), line }); }
+        i = k; continue; }
+      toks.push({ t: 'id', v: w, u: w.toUpperCase(), line }); i = j; continue; }
+    if (/[0-9]/.test(c)) {
+      let j = i; while (/[0-9_]/.test(src[j] || '')) j++;
+      if (src[j] === '#') { const base = +src.slice(i, j).replace(/_/g, ''); let k = j + 1; while (/[0-9A-Fa-f_]/.test(src[k] || '')) k++;
+        toks.push({ t: 'num', v: parseInt(src.slice(j + 1, k).replace(/_/g, ''), base), ty: 'Int', line }); i = k; continue; }
+      let real = false;
+      if (src[j] === '.' && /[0-9]/.test(src[j + 1] || '')) { real = true; j++; while (/[0-9_]/.test(src[j] || '')) j++; }
+      if (/[eE]/.test(src[j] || '') && /[-+0-9]/.test(src[j + 1] || '')) { real = true; j++; if (/[-+]/.test(src[j])) j++; while (/[0-9]/.test(src[j] || '')) j++; }
+      toks.push({ t: 'num', v: parseFloat(src.slice(i, j).replace(/_/g, '')), ty: real ? 'Real' : 'Int', line }); i = j; continue; }
+    const two = src.substr(i, 2);
+    if ([':=', '=>', '<=', '>=', '<>', '**', '..'].includes(two)) { toks.push({ t: 'op', v: two, line }); i += 2; continue; }
+    if ('+-*/()=<>,;:.[]&'.includes(c)) { toks.push({ t: 'op', v: c, line }); i++; continue; }
+    throw new SclError('Unerwartetes Zeichen „' + c + '“', line);
+  }
+  toks.push({ t: 'eof', line }); return toks;
+}
+function tokText(t) { return t.t === 'qid' ? '"' + t.v + '"' : t.t === 'lid' ? '#' + t.v : t.t === 'str' ? "'" + t.v + "'" : String(t.v); }
+
+/* ===================== Parser ===================== */
+class Parser {
+  constructor(toks) { this.k = toks; this.p = 0; }
+  get cur() { return this.k[this.p]; }
+  peek(o = 1) { return this.k[Math.min(this.p + o, this.k.length - 1)]; }
+  isKw(u) { const t = this.cur; return t.t === 'id' && t.u === u; }
+  isOp(v) { const t = this.cur; return t.t === 'op' && t.v === v; }
+  next() { return this.k[this.p++]; }
+  err(m, t = this.cur) { throw new SclError(m + (t.t === 'eof' ? ' (Ende des Codes erreicht)' : ', gefunden: „' + tokText(t) + '“'), t.line); }
+  expectOp(v, m) { if (!this.isOp(v)) this.err(m || '„' + v + '“ erwartet'); return this.next(); }
+  expectKw(u) { if (!this.isKw(u)) this.err(u + ' erwartet'); return this.next(); }
+  semi() { if (!this.isOp(';')) { const prev = this.k[this.p - 1]; throw new SclError('„;“ fehlt', prev ? prev.line : this.cur.line); } this.next(); }
+  stmtList(terms) {
+    const out = [];
+    for (;;) {
+      const t = this.cur;
+      if (t.t === 'eof') { if (terms.includes('EOF')) break; this.err(terms.filter(x => x !== 'NUM').join(' / ') + ' erwartet'); }
+      if (t.t === 'id' && terms.includes(t.u)) break;
+      if (terms.includes('NUM') && (t.t === 'num' || (t.t === 'op' && t.v === '-' && this.peek().t === 'num'))) break;
+      const s = this.stmt(); if (s) out.push(s);
+    }
+    return out;
+  }
+  program(errs) {
+    const out = [];
+    while (this.cur.t !== 'eof') {
+      const p0 = this.p;
+      try { const s = this.stmt(); if (s) out.push(s); }
+      catch (e) { if (!(e instanceof SclError)) throw e; errs.push({ line: e.line, msg: e.msg });
+        if (this.p === p0) this.next();
+        while (this.cur.t !== 'eof' && !this.isOp(';')) this.next(); if (this.isOp(';')) this.next(); }
+    }
+    return out;
+  }
+  signedInt() { let neg = false; if (this.isOp('-')) { this.next(); neg = true; }
+    const t = this.cur; if (t.t !== 'num') this.err('Ganzzahl erwartet'); this.next(); return neg ? -t.v : t.v; }
+  stmt() {
+    const t = this.cur, line = t.line;
+    if (this.isOp(';')) { this.next(); return null; }
+    if (t.t === 'id') {
+      switch (t.u) {
+        case 'IF': { this.next(); const br = []; let els = null;
+          let c = this.expr(); this.expectKw('THEN'); br.push([c, this.stmtList(['ELSIF', 'ELSE', 'END_IF'])]);
+          while (this.isKw('ELSIF')) { this.next(); c = this.expr(); this.expectKw('THEN'); br.push([c, this.stmtList(['ELSIF', 'ELSE', 'END_IF'])]); }
+          if (this.isKw('ELSE')) { this.next(); els = this.stmtList(['END_IF']); }
+          this.expectKw('END_IF'); this.semi(); return { k: 'if', br, els, line }; }
+        case 'CASE': { this.next(); const e = this.expr(); this.expectKw('OF'); const cases = []; let els = null;
+          while (!this.isKw('END_CASE') && !this.isKw('ELSE')) {
+            const labels = [];
+            for (;;) { const a = this.signedInt(); if (this.isOp('..')) { this.next(); labels.push([a, this.signedInt()]); } else labels.push([a, a]);
+              if (this.isOp(',')) { this.next(); continue; } break; }
+            this.expectOp(':'); cases.push({ labels, body: this.stmtList(['NUM', 'ELSE', 'END_CASE']) }); }
+          if (this.isKw('ELSE')) { this.next(); if (this.isOp(':')) this.next(); els = this.stmtList(['END_CASE']); }
+          this.expectKw('END_CASE'); this.semi(); return { k: 'case', e, cases, els, line }; }
+        case 'FOR': { this.next(); const v = this.ref(); this.expectOp(':='); const from = this.expr(); this.expectKw('TO'); const to = this.expr();
+          let by = null; if (this.isKw('BY')) { this.next(); by = this.expr(); } this.expectKw('DO');
+          const body = this.stmtList(['END_FOR']); this.expectKw('END_FOR'); this.semi(); return { k: 'for', v, from, to, by, body, line }; }
+        case 'WHILE': { this.next(); const c = this.expr(); this.expectKw('DO'); const body = this.stmtList(['END_WHILE']); this.expectKw('END_WHILE'); this.semi(); return { k: 'while', c, body, line }; }
+        case 'REPEAT': { this.next(); const body = this.stmtList(['UNTIL']); this.expectKw('UNTIL'); const c = this.expr(); this.expectKw('END_REPEAT'); this.semi(); return { k: 'repeat', c, body, line }; }
+        case 'EXIT': case 'CONTINUE': case 'RETURN': this.next(); this.semi(); return { k: t.u.toLowerCase(), line };
+        case 'REGION': { this.next(); while (this.cur.line === line && this.cur.t !== 'eof') this.next();
+          const body = this.stmtList(['END_REGION']); this.expectKw('END_REGION'); if (this.isOp(';')) this.next(); return { k: 'block', body, line }; }
+        case 'ELSE': case 'ELSIF': case 'END_IF': case 'END_FOR': case 'END_WHILE': case 'END_CASE': case 'END_REPEAT': case 'UNTIL': case 'THEN': case 'DO':
+          this.err('Unerwartetes Schlüsselwort'); break;
+      }
+    }
+    if (t.t !== 'id' && t.t !== 'qid' && t.t !== 'lid') this.err('Anweisung erwartet');
+    const target = this.ref();
+    if (this.isOp(':=')) { this.next(); const e = this.expr(); this.semi(); return { k: 'assign', target, e, line }; }
+    if (this.isOp('(')) { const args = this.args(); this.semi(); return { k: 'call', target, args, line }; }
+    if (this.isOp('=')) this.err('Zuweisung mit „:=“ schreiben, nicht „=“');
+    this.err('„:=“ oder Bausteinaufruf erwartet');
+  }
+  ref() {
+    const t = this.cur; let root;
+    if (t.t === 'lid') root = { k: 'lid', name: t.v };
+    else if (t.t === 'qid') root = { k: 'qid', name: t.v };
+    else if (t.t === 'id') root = { k: 'id', name: t.v };
+    else this.err('Operand erwartet');
+    this.next(); const path = [];
+    while (this.isOp('.')) { this.next(); const m = this.cur;
+      if (m.t === 'id' || m.t === 'qid') { path.push(m.v); this.next(); } else this.err('Elementname nach „.“ erwartet'); }
+    if (this.isOp('[')) this.err('ARRAY-Zugriffe werden nicht unterstützt');
+    return { k: 'ref', root, path, line: t.line };
+  }
+  args() {
+    this.expectOp('('); const args = [];
+    if (this.isOp(')')) { this.next(); return args; }
+    for (;;) {
+      const t = this.cur, nx = this.peek();
+      if ((t.t === 'id' || t.t === 'lid') && nx.t === 'op' && (nx.v === ':=' || nx.v === '=>')) {
+        this.next(); this.next(); const out = nx.v === '=>';
+        args.push({ name: t.v, out, e: out ? this.ref() : this.expr(), line: t.line });
+      } else args.push({ name: null, e: this.expr(), line: t.line });
+      if (this.isOp(',')) { this.next(); continue; }
+      this.expectOp(')', '„)“ oder „,“ erwartet'); break;
+    }
+    return args;
+  }
+  expr() { return this.orE(); }
+  bin(next, ops) { let a = next(); for (;;) { const t = this.cur; let op = null;
+      if (t.t === 'id' && ops.includes(t.u)) op = t.u; else if (t.t === 'op' && ops.includes(t.v)) op = t.v;
+      if (!op) return a; this.next(); a = { k: 'bin', op: op === '&' ? 'AND' : op, a, b: next(), line: t.line }; } }
+  orE() { return this.bin(() => this.xorE(), ['OR']); }
+  xorE() { return this.bin(() => this.andE(), ['XOR']); }
+  andE() { return this.bin(() => this.cmpE(), ['AND', '&']); }
+  cmpE() { return this.bin(() => this.addE(), ['=', '<>', '<', '>', '<=', '>=']); }
+  addE() { return this.bin(() => this.mulE(), ['+', '-']); }
+  mulE() { return this.bin(() => this.powE(), ['*', '/', 'MOD']); }
+  powE() { const a = this.unE(); if (this.isOp('**')) { const l = this.next().line; return { k: 'bin', op: '**', a, b: this.powE(), line: l }; } return a; }
+  unE() { const t = this.cur;
+    if (this.isKw('NOT')) { this.next(); return { k: 'un', op: 'NOT', a: this.unE(), line: t.line }; }
+    if (this.isOp('-')) { this.next(); return { k: 'un', op: '-', a: this.unE(), line: t.line }; }
+    if (this.isOp('+')) { this.next(); return this.unE(); }
+    return this.prim(); }
+  prim() {
+    const t = this.cur;
+    if (t.t === 'num') { this.next(); return { k: 'lit', v: t.v, t: t.ty, line: t.line }; }
+    if (t.t === 'str') { this.next(); return { k: 'lit', v: t.v, t: 'String', line: t.line }; }
+    if (this.isKw('TRUE') || this.isKw('FALSE')) { this.next(); return { k: 'lit', v: t.u === 'TRUE', t: 'Bool', line: t.line }; }
+    if (this.isOp('(')) { this.next(); const e = this.expr(); this.expectOp(')', '„)“ fehlt'); return e; }
+    if (t.t === 'id' || t.t === 'qid' || t.t === 'lid') {
+      const r = this.ref();
+      if (this.isOp('(')) return { k: 'fcall', ref: r, args: this.args(), line: t.line };
+      return r; }
+    this.err('Ausdruck erwartet');
+  }
+}
+
+/* ===================== Compiler ===================== */
+const BUILTIN = {
+  ABS: { p: ['IN'], f: Math.abs, t: a => a[0] }, SQRT: { p: ['IN'], f: Math.sqrt, t: 'Real' }, SQR: { p: ['IN'], f: x => x * x, t: a => a[0] },
+  LN: { p: ['IN'], f: Math.log, t: 'Real' }, EXP: { p: ['IN'], f: Math.exp, t: 'Real' }, SIN: { p: ['IN'], f: Math.sin, t: 'Real' },
+  COS: { p: ['IN'], f: Math.cos, t: 'Real' }, TAN: { p: ['IN'], f: Math.tan, t: 'Real' },
+  MIN: { p: ['IN1', 'IN2', 'IN3', 'IN4'], min: 2, f: Math.min, t: a => numRes(...a) }, MAX: { p: ['IN1', 'IN2', 'IN3', 'IN4'], min: 2, f: Math.max, t: a => numRes(...a) },
+  LIMIT: { p: ['MN', 'IN', 'MX'], f: (mn, v, mx) => Math.min(Math.max(v, mn), mx), t: a => numRes(...a) },
+  SEL: { p: ['G', 'IN0', 'IN1'], f: (g, a, b) => g ? b : a, t: a => a[1] },
+  TRUNC: { p: ['IN'], f: Math.trunc, t: 'DInt' }, ROUND: { p: ['IN'], f: Math.round, t: 'DInt' },
+  CEIL: { p: ['IN'], f: Math.ceil, t: 'DInt' }, FLOOR: { p: ['IN'], f: Math.floor, t: 'DInt' },
+  NORM_X: { p: ['MIN', 'VALUE', 'MAX'], f: (mn, v, mx) => mx === mn ? 0 : (v - mn) / (mx - mn), t: 'Real' },
+  SCALE_X: { p: ['MIN', 'VALUE', 'MAX'], f: (mn, v, mx) => v * (mx - mn) + mn, t: 'Real' },
+};
+function numRes(...ts) { if (ts.some(isRealT)) return 'Real'; if (ts.includes('Time')) return 'Time'; if (ts.includes('DInt')) return 'DInt'; return ts[0] === 'any' ? 'any' : 'Int'; }
+function coercer(t, st) {
+  if (t === 'Bool') return v => !!v;
+  if (isRealT(t)) return v => +v;
+  const rng = INTR[t];
+  if (rng) { const [lo, hi] = rng, span = hi - lo + 1; const rnd = isRealT(st) ? Math.round : Math.trunc;
+    return v => { v = rnd(+v) || 0; if (v < lo || v > hi) v = ((v - lo) % span + span) % span + lo; return v; }; }
+  return v => v;
+}
+function checkAssign(t, st, sc, line, what) {
+  if (st === 'any' || t === 'any') return;
+  if (t === 'Bool' && st !== 'Bool') throw new SclError(`Typkonflikt: ${st} kann nicht ${what || 'nach Bool'} zugewiesen werden`, line);
+  if (NUMT.has(t) && st === 'Bool') throw new SclError(`Typkonflikt: Bool kann nicht nach ${t} zugewiesen werden`, line);
+  if (NUMT.has(t) && !NUMT.has(st)) throw new SclError(`Typkonflikt: ${st} → ${t}`, line);
+  if (isIntT(t) && isRealT(st)) sc.warns.push({ line, msg: `Implizite Konvertierung ${st} → ${t} (es wird gerundet)` });
+}
+function findVar(list, m, reg) { const v = list.find(v => v.name.toLowerCase() === String(m).toLowerCase()); return v ? { name: v.name, type: canonType(v.type, reg) } : null; }
+function ifaceVars(b, secs) { const out = []; for (const s of secs) for (const v of (b.iface && b.iface[s]) || []) out.push(v); return out; }
+function memberType(t, m, reg) {
+  if (IEC[t]) { const all = { ...IEC[t].ins, ...IEC[t].outs }; const k = Object.keys(all).find(x => x.toLowerCase() === m.toLowerCase()); return k ? { name: k, type: all[k] } : null; }
+  if (t.startsWith('DB:')) { const db = reg.blocks.get(t.slice(3).toLowerCase());
+    if (db.instanceOf) return memberType(canonType(db.instanceOf, reg), m, reg);
+    return findVar(ifaceVars(db, ['Static']), m, reg); }
+  const b = reg.blocks.get(t.toLowerCase());
+  if (b && b.type === 'FB') return findVar(ifaceVars(b, ['Input', 'Output', 'InOut', 'Static']), m, reg);
+  return null;
+}
+function resolveRoot(r, sc) {
+  const { root } = r, name = root.name, lo = name.toLowerCase();
+  if (root.k === 'lid') { const v = sc.vars.get(lo); if (!v) throw new SclError(`Lokale Variable „#${name}“ ist nicht deklariert`, r.line); return { base: 'L', key: v.name, t: v.type }; }
+  if (root.k === 'id' && sc.vars.has(lo)) { const v = sc.vars.get(lo); return { base: 'L', key: v.name, t: v.type }; }
+  const tag = sc.reg.tags.get(lo);
+  if (tag) return { base: 'G', key: tag.name, t: canonType(tag.type, sc.reg) };
+  const b = sc.reg.blocks.get(lo);
+  if (b && b.type === 'DB') return { base: 'D', key: b.name, t: 'DB:' + b.name };
+  if (b) return { block: b };
+  throw new SclError(root.k === 'qid' ? `PLC-Variable „"${name}"“ ist nicht definiert` : `Bezeichner „${name}“ ist unbekannt (lokal: #${name}, global: "${name}")`, r.line);
+}
+function compileRef(r, sc) {
+  const rr = resolveRoot(r, sc);
+  if (rr.block) throw new SclError(`„${rr.block.name}“ ist ein Baustein und kann hier nicht als Operand verwendet werden`, r.line);
+  const keys = [rr.key]; let t = rr.t;
+  for (const m of r.path) { const mt = memberType(t, m, sc.reg);
+    if (!mt) throw new SclError(`„${m}“ ist kein Element von ${t.replace(/^DB:/, '')}`, r.line);
+    keys.push(mt.name); t = mt.type; }
+  const base = rr.base, n = keys.length, last = keys[n - 1];
+  const obj = ctx => { let o = ctx[base]; for (let i = 0; i < n - 1; i++) o = o[keys[i]]; return o; };
+  const co = coercer(t);
+  return { t, keys, base, line: r.line,
+    get: n === 1 ? ctx => ctx[base][last] : ctx => obj(ctx)[last],
+    set: (ctx, v) => { obj(ctx)[last] = co(v); },
+    kind: typeKind(t, sc.reg) };
+}
+function compileExpr(e, sc) {
+  switch (e.k) {
+    case 'lit': { const v = e.v; return { f: () => v, t: e.t }; }
+    case 'ref': { const r = compileRef(e, sc);
+      if (r.kind === 'iec' || r.kind === 'fb' || r.kind === 'db') throw new SclError(`„${r.keys.join('.')}“ ist strukturiert und kann nicht als Wert verwendet werden`, e.line);
+      return { f: r.get, t: r.t }; }
+    case 'un': { const a = compileExpr(e.a, sc), f = a.f;
+      if (e.op === 'NOT') { if (a.t === 'Bool' || a.t === 'any') return { f: c => !f(c), t: 'Bool' };
+        if (isIntT(a.t)) return { f: c => ~f(c), t: a.t };
+        throw new SclError('NOT erwartet Bool', e.line); }
+      if (a.t === 'Bool') throw new SclError('Vorzeichen bei Bool nicht möglich', e.line);
+      return { f: c => -f(c), t: a.t }; }
+    case 'bin': {
+      const A = compileExpr(e.a, sc), B = compileExpr(e.b, sc), a = A.f, b = B.f, op = e.op;
+      if (op === 'AND' || op === 'OR' || op === 'XOR') {
+        if (A.t === 'Bool' && B.t === 'Bool' || A.t === 'any' || B.t === 'any') {
+          if (op === 'AND') return { f: c => a(c) && b(c), t: 'Bool' };
+          if (op === 'OR') return { f: c => a(c) || b(c), t: 'Bool' };
+          return { f: c => !!a(c) !== !!b(c), t: 'Bool' }; }
+        if (isIntT(A.t) && isIntT(B.t)) { const t = numRes(A.t, B.t);
+          if (op === 'AND') return { f: c => a(c) & b(c), t }; if (op === 'OR') return { f: c => a(c) | b(c), t }; return { f: c => a(c) ^ b(c), t }; }
+        throw new SclError(`${op}: Operanden ${A.t} und ${B.t} passen nicht zusammen`, e.line); }
+      if (['=', '<>', '<', '>', '<=', '>='].includes(op)) {
+        if ((A.t === 'Bool') !== (B.t === 'Bool') && A.t !== 'any' && B.t !== 'any') throw new SclError(`Vergleich ${A.t} ${op} ${B.t} nicht möglich`, e.line);
+        const F = { '=': (x, y) => x === y, '<>': (x, y) => x !== y, '<': (x, y) => x < y, '>': (x, y) => x > y, '<=': (x, y) => x <= y, '>=': (x, y) => x >= y }[op];
+        if (A.t === 'Bool') return { f: c => F(!!a(c), !!b(c)), t: 'Bool' };
+        return { f: c => F(+a(c), +b(c)), t: 'Bool' }; }
+      if (A.t === 'Bool' || B.t === 'Bool') throw new SclError(`Arithmetik („${op}“) mit Bool nicht möglich`, e.line);
+      const t = numRes(A.t, B.t), ints = !isRealT(A.t) && !isRealT(B.t);
+      switch (op) {
+        case '+': return { f: c => a(c) + b(c), t }; case '-': return { f: c => a(c) - b(c), t }; case '*': return { f: c => a(c) * b(c), t };
+        case '/': return ints ? { f: c => { const d = b(c); return d === 0 ? 0 : Math.trunc(a(c) / d); }, t } : { f: c => a(c) / b(c), t };
+        case 'MOD': if (!ints) throw new SclError('MOD nur für Ganzzahlen', e.line); return { f: c => { const d = b(c); return d === 0 ? 0 : a(c) % d; }, t };
+        case '**': return { f: c => Math.pow(a(c), b(c)), t: 'Real' }; }
+      throw new SclError('Unbekannter Operator ' + op, e.line); }
+    case 'fcall': {
+      const r = e.ref, nm = r.root.name.toUpperCase();
+      if (r.root.k === 'id' && r.path.length === 0) {
+        const conv = /^(\w+?)_TO_(\w+)$/.exec(nm);
+        if (conv) { if (e.args.length !== 1) throw new SclError(nm + ' erwartet genau einen Parameter', e.line);
+          const A = compileExpr(e.args[0].e, sc), a = A.f, tt = normType(conv[2]);
+          if (tt === 'Bool') return { f: c => !!a(c), t: 'Bool' };
+          if (!NUMT.has(tt)) throw new SclError('Unbekannte Konvertierung ' + nm, e.line);
+          const co = coercer(tt, isRealT(A.t) ? 'Real' : 'Int'); const rnd = isIntT(tt) && isRealT(A.t);
+          return { f: rnd ? c => co(Math.round(a(c))) : c => co(+a(c)), t: tt }; }
+        const bi = BUILTIN[nm];
+        if (bi) { const slots = [];
+          e.args.forEach((ar, i) => { let idx = i;
+            if (ar.name) { idx = bi.p.findIndex(p => p === ar.name.toUpperCase()); if (idx < 0) throw new SclError(`${nm}: unbekannter Parameter „${ar.name}“`, ar.line); }
+            if (ar.out) throw new SclError(`${nm}: Ausgangsparameter nicht möglich`, ar.line);
+            if (idx >= bi.p.length) throw new SclError(`${nm}: zu viele Parameter`, ar.line);
+            slots[idx] = compileExpr(ar.e, sc); });
+          const need = bi.min || bi.p.length; const used = [];
+          for (let i = 0; i < bi.p.length; i++) { if (slots[i]) used.push(slots[i]); else if (i < need) throw new SclError(`${nm}: Parameter ${bi.p[i]} fehlt`, e.line); }
+          const fs = used.map(s => s.f), ts = used.map(s => s.t), fn = bi.f;
+          const t = typeof bi.t === 'function' ? bi.t(ts) : bi.t;
+          if (fs.length === 1) { const f0 = fs[0]; return { f: c => fn(f0(c)), t }; }
+          return { f: c => fn(...fs.map(f => f(c))), t }; }
+      }
+      const b = sc.reg.blocks.get(r.root.name.toLowerCase());
+      if (b && b.type === 'FC') throw new SclError(`FC „${b.name}“ hat keinen Rückgabewert und kann nur als Anweisung aufgerufen werden`, e.line);
+      throw new SclError(`Unbekannte Funktion „${r.root.name}“`, e.line); }
+  }
+  throw new SclError('Ausdruck nicht unterstützt', e.line);
+}
+function guard(ctx) { if (++ctx.guard > 3e6) throw new PlcError('Zykluszeitüberwachung angesprochen (Endlosschleife?)'); }
+function execList(list, ctx) { for (let i = 0; i < list.length; i++) { const r = list[i](ctx); if (r) return r; } return 0; }
+function compileList(ast, sc) {
+  return ast.map(s => { try { return compileStmt(s, sc); } catch (e) { if (e instanceof SclError) { sc.errs.push({ line: e.line ?? s.line, msg: e.msg }); return () => 0; } throw e; } });
+}
+function compileStmt(s, sc) {
+  switch (s.k) {
+    case 'assign': {
+      const r = compileRef(s.target, sc);
+      if (!(r.kind === 'bool' || r.kind === 'num')) throw new SclError(`„${r.keys.join('.')}“ kann nichts zugewiesen werden`, s.line);
+      const E = compileExpr(s.e, sc); checkAssign(r.t, E.t, sc, s.line, 'nach ' + r.t);
+      const co = coercer(r.t, E.t), f = E.f, keys = r.keys, base = r.base;
+      if (keys.length === 1) { const k = keys[0]; return c => { c[base][k] = co(f(c)); return 0; }; }
+      const set = r.set; return c => { set(c, f(c)); return 0; }; }
+    case 'if': { const br = s.br.map(([c, b]) => { const C = compileExpr(c, sc); if (C.t !== 'Bool' && C.t !== 'any') throw new SclError('IF-Bedingung muss Bool sein', c.line || s.line); return [C.f, compileList(b, sc)]; });
+      const els = s.els ? compileList(s.els, sc) : null;
+      return c => { for (let i = 0; i < br.length; i++) if (br[i][0](c)) return execList(br[i][1], c); return els ? execList(els, c) : 0; }; }
+    case 'case': { const E = compileExpr(s.e, sc); if (!isIntT(E.t) && E.t !== 'any') throw new SclError('CASE-Ausdruck muss ganzzahlig sein', s.line);
+      const cases = s.cases.map(cs => ({ labels: cs.labels, body: compileList(cs.body, sc) })); const els = s.els ? compileList(s.els, sc) : null; const f = E.f;
+      return c => { const v = f(c); for (const cs of cases) for (const [a, b] of cs.labels) if (v >= a && v <= b) return execList(cs.body, c); return els ? execList(els, c) : 0; }; }
+    case 'for': { const v = compileRef(s.v, sc); if (!isIntT(v.t)) throw new SclError('Laufvariable muss ganzzahlig sein', s.line);
+      const from = compileExpr(s.from, sc).f, to = compileExpr(s.to, sc).f, by = s.by ? compileExpr(s.by, sc).f : null, body = compileList(s.body, sc);
+      return c => { const end = to(c), st = by ? by(c) : 1; if (st === 0) throw new PlcError('FOR-Schleife mit Schrittweite 0');
+        v.set(c, from(c));
+        while (st > 0 ? v.get(c) <= end : v.get(c) >= end) { guard(c); const r = execList(body, c); if (r === 1) break; if (r === 3) return 3; v.set(c, v.get(c) + st); }
+        return 0; }; }
+    case 'while': { const C = compileExpr(s.c, sc).f, body = compileList(s.body, sc);
+      return c => { while (C(c)) { guard(c); const r = execList(body, c); if (r === 1) break; if (r === 3) return 3; } return 0; }; }
+    case 'repeat': { const C = compileExpr(s.c, sc).f, body = compileList(s.body, sc);
+      return c => { do { guard(c); const r = execList(body, c); if (r === 1) break; if (r === 3) return 3; } while (!C(c)); return 0; }; }
+    case 'exit': return () => 1; case 'continue': return () => 2; case 'return': return () => 3;
+    case 'block': { const body = compileList(s.body, sc); return c => execList(body, c); }
+    case 'call': return compileCall(s, sc);
+  }
+  throw new SclError('Anweisung nicht unterstützt', s.line);
+}
+function bindParams(s, sc, P, label) {
+  const ins = [], outs = [], ios = [];
+  for (const a of s.args) {
+    if (!a.name) throw new SclError(`${label}: Parameter mit Namen übergeben (z. B. IN := …)`, a.line);
+    const lo = a.name.toLowerCase();
+    if (a.out) { const p = P.outs.get(lo); if (!p) throw new SclError(`${label}: „${a.name}“ ist kein Ausgang`, a.line);
+      const r = compileRef(a.e, sc); checkAssign(r.t, p.type, sc, a.line, 'nach ' + r.t); outs.push({ k: p.name, set: r.set }); continue; }
+    if (P.outs.has(lo)) throw new SclError(`${label}: Ausgang „${a.name}“ mit „=>“ verschalten`, a.line);
+    if (P.ios.has(lo)) { const p = P.ios.get(lo); if (a.e.k !== 'ref') throw new SclError(`${label}: InOut „${a.name}“ braucht eine Variable`, a.line);
+      const r = compileRef(a.e, sc); ios.push({ k: p.name, get: r.get, set: r.set }); continue; }
+    const p = P.ins.get(lo); if (!p) throw new SclError(`${label}: unbekannter Parameter „${a.name}“`, a.line);
+    const E = compileExpr(a.e, sc); checkAssign(p.type, E.t, sc, a.line, 'nach ' + p.type);
+    ins.push({ k: p.name, f: E.f, co: coercer(p.type, E.t) }); }
+  return { ins, outs, ios };
+}
+function mapOf(entries) { const m = new Map(); for (const [n, t] of entries) m.set(n.toLowerCase(), { name: n, type: t }); return m; }
+function compileCall(s, sc) {
+  const tg = s.target;
+  if (tg.path.length === 0 && tg.root.k !== 'lid' && !(tg.root.k === 'id' && sc.vars.has(tg.root.name.toLowerCase()))) {
+    const b = sc.reg.blocks.get(tg.root.name.toLowerCase());
+    if (b && b.type === 'FC') {
+      const P = { ins: mapOf(ifaceVars(b, ['Input']).map(v => [v.name, canonType(v.type, sc.reg)])), outs: mapOf(ifaceVars(b, ['Output']).map(v => [v.name, canonType(v.type, sc.reg)])), ios: mapOf(ifaceVars(b, ['InOut']).map(v => [v.name, canonType(v.type, sc.reg)])) };
+      const { ins, outs, ios } = bindParams(s, sc, P, b.name);
+      for (const [lo, p] of P.ins) if (!ins.some(i => i.k.toLowerCase() === lo)) throw new SclError(`${b.name}: Eingang „${p.name}“ nicht versorgt`, s.line);
+      for (const [lo, p] of P.ios) if (!ios.some(i => i.k.toLowerCase() === lo)) throw new SclError(`${b.name}: InOut „${p.name}“ nicht versorgt`, s.line);
+      const lo = b.name.toLowerCase();
+      return c => { const L = c.rt.newLocals(lo);
+        for (const i of ins) L[i.k] = i.co(i.f(c)); for (const i of ios) L[i.k] = i.get(c);
+        c.rt.exec(lo, L, c);
+        for (const o of outs) o.set(c, L[o.k]); for (const i of ios) i.set(c, L[i.k]); return 0; }; }
+    if (b && b.type === 'FB') throw new SclError(`FB „${b.name}“ braucht eine Instanz: "${b.name}_DB"(…) oder Multiinstanz #inst(…)`, s.line);
+    if (b && b.type === 'OB') throw new SclError('Organisationsbausteine können nicht aufgerufen werden', s.line);
+    if (tg.root.k === 'id' && (BUILTIN[tg.root.name.toUpperCase()] || /_TO_/i.test(tg.root.name))) throw new SclError(`Funktion „${tg.root.name}“ liefert einen Wert – Ergebnis zuweisen: x := ${tg.root.name}(…);`, s.line);
+  }
+  const r = compileRef(tg, sc); let t = r.t;
+  if (t.startsWith('DB:')) { const db = sc.reg.blocks.get(t.slice(3).toLowerCase());
+    if (!db.instanceOf) throw new SclError(`Global-DB „${db.name}“ kann nicht aufgerufen werden`, s.line); t = canonType(db.instanceOf, sc.reg); }
+  const label = r.keys.join('.'), get = r.get;
+  if (IEC[t]) { const D = IEC[t];
+    const P = { ins: mapOf(Object.entries(D.ins)), outs: mapOf(Object.entries(D.outs)), ios: new Map() };
+    const { ins, outs } = bindParams(s, sc, P, label); const run = D.run;
+    return c => { const st = get(c); for (const i of ins) st[i.k] = i.co(i.f(c)); run(st, c.now); for (const o of outs) o.set(c, st[o.k]); return 0; }; }
+  const fb = sc.reg.blocks.get(t.toLowerCase());
+  if (fb && fb.type === 'FB') {
+    const P = { ins: mapOf(ifaceVars(fb, ['Input']).map(v => [v.name, canonType(v.type, sc.reg)])), outs: mapOf(ifaceVars(fb, ['Output']).map(v => [v.name, canonType(v.type, sc.reg)])), ios: mapOf(ifaceVars(fb, ['InOut']).map(v => [v.name, canonType(v.type, sc.reg)])) };
+    const { ins, outs, ios } = bindParams(s, sc, P, label); const lo = fb.name.toLowerCase();
+    return c => { const st = get(c); for (const i of ins) st[i.k] = i.co(i.f(c)); for (const i of ios) st[i.k] = i.get(c);
+      c.rt.runFB(lo, st, c); for (const o of outs) o.set(c, st[o.k]); for (const i of ios) i.set(c, st[i.k]); return 0; }; }
+  throw new SclError(`„${label}“ (${t}) ist nicht aufrufbar`, s.line);
+}
+function parseInit(str, type, reg) {
+  const s = String(str ?? '').trim(); if (!s) return null;
+  const toks = lex(s); let i = 0, neg = false;
+  if (toks[0].t === 'op' && toks[0].v === '-') { neg = true; i = 1; }
+  const t = toks[i];
+  if (t.t === 'id' && (t.u === 'TRUE' || t.u === 'FALSE')) return t.u === 'TRUE';
+  if (t.t !== 'num' || toks[i + 1].t !== 'eof') throw new SclError(`Ungültiger Startwert „${s}“`);
+  const v = neg ? -t.v : t.v; return type === 'Bool' ? !!v : coercer(type, t.ty)(v);
+}
+function defVal(type, init, reg, depth = 0) {
+  if (depth > 12) throw new SclError('Instanzen zu tief verschachtelt (Rekursion?)');
+  const k = typeKind(type, reg);
+  if (k === 'bool' || k === 'num') { let v = null; try { v = parseInit(init, type, reg); } catch (e) { v = null; } return v ?? (k === 'bool' ? false : 0); }
+  if (k === 'iec') { const o = {}; for (const [n, t] of Object.entries({ ...IEC[type].ins, ...IEC[type].outs })) o[n] = t === 'Bool' ? false : 0; return o; }
+  if (k === 'fb') return createInstance(reg.blocks.get(type.toLowerCase()), reg, depth + 1);
+  return 0;
+}
+function createInstance(fb, reg, depth = 0) { const o = {}; for (const v of ifaceVars(fb, ['Input', 'Output', 'InOut', 'Static', 'Temp'])) o[v.name] = defVal(canonType(v.type, reg), v.init, reg, depth); return o; }
+function buildReg(P) { const tags = new Map(), blocks = new Map(); for (const t of P.tags) if (t.name) tags.set(t.name.toLowerCase(), t); for (const b of P.blocks) blocks.set(b.name.toLowerCase(), b); return { tags, blocks }; }
+function makeScope(b, reg, extra) {
+  const vars = new Map();
+  if (b) for (const s of SECTIONS[b.type] || []) for (const v of (b.iface && b.iface[s]) || []) if (v.name) vars.set(v.name.toLowerCase(), { name: v.name, type: canonType(v.type, reg), sec: s, init: v.init });
+  for (const v of extra || []) vars.set(v.name.toLowerCase(), { name: v.name, type: v.type, sec: 'Temp' });
+  return { reg, vars, block: b, errs: [], warns: [] };
+}
+function compileExprString(str, sc) {
+  const p = new Parser(lex(str)); const e = p.expr(); if (p.cur.t !== 'eof') p.err('Ende des Ausdrucks erwartet'); return compileExpr(e, sc);
+}
+function compileRefString(str, sc) {
+  const p = new Parser(lex(str)); const r = p.ref(); if (p.cur.t !== 'eof') p.err('Operand erwartet'); return compileRef(r, sc);
+}
+
+/* ===================== KOP / FUP → SCL ===================== */
+const CMP_SCL = { '==': '=', '<>': '<>', '>': '>', '<': '<', '>=': '>=', '<=': '<=' };
+const ARITH = { ADD: '+', SUB: '-', MUL: '*', DIV: '/' };
+function simple(x) { return /^(NOT )?[\w#".]+$/.test(x) || /^\([^()]*\)$/.test(x) || balancedParen(x); }
+function balancedParen(x) { if (x[0] !== '(' || x[x.length - 1] !== ')') return false; let d = 0; for (let i = 0; i < x.length; i++) { if (x[i] === '(') d++; else if (x[i] === ')') { d--; if (d === 0 && i < x.length - 1) return false; } } return d === 0; }
+function par(x) { return simple(x) ? x : '(' + x + ')'; }
+function andX(a, b) { if (a === null) return null; if (a === 'TRUE') return b; return a + ' AND ' + b; }
+function emitEl(el, P, emit, err, reg) {
+  const o = k => { const v = String(el[k] ?? '').trim(); if (!v) { err(`${elLabel(el.t)}: ${k.toUpperCase()} fehlt`); return 'FALSE'; } return v; };
+  const opt = k => String(el[k] ?? '').trim();
+  const gd = s => emit(P === 'TRUE' ? s : `IF ${P} THEN ${s} END_IF;`);
+  switch (el.t) {
+    case 'COIL': emit(`${o('op')} := ${P};`); return P;
+    case 'NCOIL': emit(`${o('op')} := NOT ${par(P)};`); return P;
+    case 'SET': gd(`${o('op')} := TRUE;`); return P;
+    case 'RST': gd(`${o('op')} := FALSE;`); return P;
+    case 'TON': case 'TOF': case 'TP': { const i = o('inst'); let s = `${i}(IN := ${P}, PT := ${o('pt')}`;
+      if (opt('q')) s += `, Q => ${opt('q')}`; if (opt('et')) s += `, ET => ${opt('et')}`; emit(s + ');'); return `${i}.Q`; }
+    case 'CTU': case 'CTD': { const i = o('inst'); let s = el.t === 'CTU' ? `${i}(CU := ${P}, R := ${opt('r') || 'FALSE'}, PV := ${o('pv')}` : `${i}(CD := ${P}, LD := ${opt('ld') || 'FALSE'}, PV := ${o('pv')}`;
+      if (opt('q')) s += `, Q => ${opt('q')}`; if (opt('cv')) s += `, CV => ${opt('cv')}`; emit(s + ');'); return `${i}.Q`; }
+    case 'MOVE': gd(`${o('out')} := ${o('in')};`); return P;
+    case 'ADD': case 'SUB': case 'MUL': case 'DIV': gd(`${o('out')} := ${o('in1')} ${ARITH[el.t]} ${o('in2')};`); return P;
+    case 'CALL': {
+      const bn = opt('blk').replace(/"/g, ''); const b = bn && reg.blocks.get(bn.toLowerCase());
+      if (!b || (b.type !== 'FB' && b.type !== 'FC')) { err(bn ? `Baustein „${bn}“ existiert nicht oder ist kein FB/FC` : 'CALL: Baustein fehlt'); return P; }
+      const tgt = b.type === 'FB' ? o('inst') : `"${b.name}"`; const args = []; const pm = el.params || {};
+      for (const v of ifaceVars(b, ['Input', 'InOut'])) { const x = String(pm[v.name] ?? '').trim(); if (x) args.push(`${v.name} := ${x}`); else if (b.type === 'FC') err(`${b.name}: Parameter ${v.name} nicht versorgt`); }
+      for (const v of ifaceVars(b, ['Output'])) { const x = String(pm[v.name] ?? '').trim(); if (x) args.push(`${v.name} => ${x}`); }
+      gd(`${tgt}(${args.join(', ')});`); return P; }
+  }
+  err('Unbekanntes Element ' + el.t); return P;
+}
+function elLabel(t) { return ({ NO: 'Schließer', NC: 'Öffner', COIL: 'Spule', NCOIL: 'Neg. Spule', SET: 'Setzen', RST: 'Rücksetzen', CMP: 'Vergleicher', P: 'P-Flanke', N: 'N-Flanke' })[t] || t; }
+function ladGen(net, ni, reg, emit, err, temps) {
+  const R = net.rows, C = net.cols; let p = Array(R).fill('TRUE'); const dIn = {}, dOut = {}, dLink = {}; let tc = 0;
+  const op = (el, k) => { const v = String(el[k] ?? '').trim(); if (!v) { err(`${elLabel(el.t)}: Operand fehlt`); return 'FALSE'; } return v; };
+  for (let c = 0; c < C; c++) {
+    const out = Array(R).fill(null);
+    for (let r = 0; r < R; r++) {
+      const key = r + ',' + c, el = net.cells[key], pin = p[r]; if (!el) continue;
+      const P = pin === null ? 'FALSE' : pin; dIn[key] = P; let o;
+      switch (el.t) {
+        case 'W': o = pin; break;
+        case 'NO': o = andX(pin, op(el, 'op')); break;
+        case 'NC': o = andX(pin, 'NOT ' + op(el, 'op')); break;
+        case 'CMP': o = andX(pin, `(${op(el, 'a')} ${CMP_SCL[el.cmp] || '='} ${op(el, 'b')})`); break;
+        case 'P': case 'N': { const t = `#__n${ni}_${tc++}`; temps.push({ name: t.slice(1), type: 'Bool' });
+          const x = String(el.op ?? '').trim(), m = String(el.mem ?? '').trim();
+          if (!x || !m) { err(`${elLabel(el.t)}: ${!x ? 'Operand' : 'Flankenmerker'} fehlt`); o = andX(pin, 'FALSE'); break; }
+          emit(el.t === 'P' ? `${t} := ${x} AND NOT ${m};` : `${t} := NOT ${x} AND ${m};`); emit(`${m} := ${x};`); o = andX(pin, t); break; }
+        default: o = emitEl(el, P, emit, err, reg); if (o === P && pin === null) o = null;
+      }
+      out[r] = o ?? null; dOut[key] = o ?? 'FALSE';
+    }
+    const np = out.slice(); let r = 0;
+    while (r < R) { let e = r; while (e < R - 1 && net.links[e + ',' + (c + 1)]) e++;
+      if (e > r) { const parts = []; for (let k = r; k <= e; k++) if (out[k] !== null && !parts.includes(out[k])) parts.push(out[k]);
+        const v = parts.length === 0 ? null : parts.length === 1 ? parts[0] : '(' + parts.join(' OR ') + ')';
+        for (let k = r; k <= e; k++) { np[k] = v; if (k < e) dLink[k + ',' + (c + 1)] = v ?? 'FALSE'; } }
+      r = e + 1; }
+    p = np;
+  }
+  return { dIn, dOut, dLink };
+}
+function fbdExprIn(inp, err, disp) { const x = fbdExprN(inp.n, err, disp); const r = inp.neg ? 'NOT ' + par(x) : x; if (disp) disp.set(inp, r); return r; }
+function fbdExprN(n, err, disp) {
+  let r;
+  if (!n) { err('Eingang leer'); r = 'FALSE'; }
+  else if (n.t === 'OP') { const v = String(n.op || '').trim(); if (!v) { err('Operand fehlt'); r = 'FALSE'; } else r = v; }
+  else if (n.t === 'CMP') { const a = String(n.a || '').trim(), b = String(n.b || '').trim(); if (!a || !b) err('Vergleicher: Operand fehlt'); r = `(${a || '0'} ${CMP_SCL[n.cmp] || '='} ${b || '0'})`; }
+  else { const j = { AND: ' AND ', OR: ' OR ', XOR: ' XOR ' }[n.t]; const parts = (n.ins || []).map(i => par(fbdExprIn(i, err, disp)));
+    if (!parts.length) { err('Gatter ohne Eingänge'); r = 'FALSE'; } else r = parts.length === 1 ? parts[0] : '(' + parts.join(j) + ')'; }
+  if (disp && n) disp.set(n, r); return r;
+}
+function blockScl(b, reg) {
+  if (b.lang === 'SCL') return { text: b.scl || '', map: null, errs: [], temps: [], disp: null };
+  const lines = [], map = [], errs = [], temps = [], disp = [];
+  (b.networks || []).forEach((net, ni) => {
+    const start = lines.length + 1; lines.push(`// Netzwerk ${ni + 1}: ${(net.title || '').replace(/\n/g, ' ')}`);
+    const emit = s => lines.push(s), err = m => errs.push({ net: ni, msg: m });
+    if (b.lang === 'LAD') disp.push(ladGen(net, ni, reg, emit, err, temps));
+    else { const d = new Map(); const root = net.root || { t: 'COIL', in: { neg: false, n: { t: 'OP', op: '' } } };
+      const P = fbdExprIn(root.in, err, d); emitEl(root.t === 'ASSIGN' ? { ...root, t: 'COIL' } : root, P, emit, err, reg); disp.push(d); }
+    map.push({ from: start, to: lines.length, net: ni });
+  });
+  return { text: lines.join('\n'), map, errs, temps, disp };
+}
+
+/* ===================== Projekt übersetzen ===================== */
+const VALID_ADDR = { Bool: /^%[IQM]\d+\.[0-7]$/i, Byte: /^%[IQM]B\d+$/i, Int: /^%[IQM]W\d+$/i, UInt: /^%[IQM]W\d+$/i, Word: /^%[IQM]W\d+$/i, DInt: /^%[IQM]D\d+$/i, Real: /^%[IQM]D\d+$/i, Time: /^%[IQM]D\d+$/i, LReal: /^%[IQM]D\d+$/i };
+function compileProject(P) {
+  const reg = buildReg(P), msgs = [], code = new Map();
+  const M = (lvl, msg, o = {}) => msgs.push({ lvl, msg, ...o });
+  const names = new Map();
+  for (const t of P.tags) { if (!t.name) { M('err', 'Variable ohne Namen', { tags: 1 }); continue; }
+    const lo = t.name.toLowerCase(); if (names.has(lo)) M('err', `Name „${t.name}“ mehrfach vergeben`, { tags: 1 }); names.set(lo, 1);
+    const ty = normType(t.type); if (!BASIC_TYPES.includes(ty)) M('err', `Variable „${t.name}“: Datentyp „${t.type}“ unbekannt`, { tags: 1 });
+    if (!t.addr) M('warn', `Variable „${t.name}“ hat keine Adresse`, { tags: 1 });
+    else if (VALID_ADDR[ty] && !VALID_ADDR[ty].test(t.addr.trim())) M('warn', `Variable „${t.name}“: Adresse ${t.addr} passt nicht zu ${ty}`, { tags: 1 });
+    try { if (t.init) parseInit(t.init, ty, reg); } catch (e) { M('err', `Variable „${t.name}“: ${e.msg}`, { tags: 1 }); } }
+  const addrs = new Map(); for (const t of P.tags) if (t.addr) { const a = t.addr.trim().toUpperCase(); if (addrs.has(a)) M('warn', `Adresse ${a} doppelt belegt („${addrs.get(a)}“, „${t.name}“)`, { tags: 1 }); addrs.set(a, t.name); }
+  for (const b of P.blocks) { const lo = b.name.toLowerCase(); if (names.has(lo)) M('err', `Name „${b.name}“ mehrfach vergeben (Variable/Baustein)`, { block: b.name }); names.set(lo, 1); }
+  const typeOk = (t, sec) => { const c = canonType(t, reg); if (BASIC_TYPES.includes(c)) return true;
+    if (IEC[c] || (reg.blocks.get(c.toLowerCase()) || {}).type === 'FB') return sec === 'Static' || sec === 'Temp' || sec === 'InOut'; return false; };
+  for (const b of P.blocks) {
+    const seen = new Set();
+    for (const s of SECTIONS[b.type] || []) for (const v of (b.iface && b.iface[s]) || []) {
+      if (!v.name) { M('err', `Schnittstelle ${s}: Variable ohne Namen`, { block: b.name }); continue; }
+      if (!/^[A-Za-z_]\w*$/.test(v.name)) M('err', `Ungültiger Name „${v.name}“`, { block: b.name });
+      const lo = v.name.toLowerCase(); if (seen.has(lo)) M('err', `Lokaler Name „${v.name}“ doppelt`, { block: b.name }); seen.add(lo);
+      if (!typeOk(v.type, s)) M('err', `„${v.name}“: Datentyp „${v.type}“ ${typeKind(canonType(v.type, reg), reg) ? 'hier nicht erlaubt' : 'unbekannt'}`, { block: b.name });
+      else if (v.init) { try { parseInit(v.init, canonType(v.type, reg), reg); } catch (e) { M('err', `„${v.name}“: ${e.msg}`, { block: b.name }); } }
+      if (canonType(v.type, reg) === b.name) M('err', `FB „${b.name}“ kann sich nicht selbst als Instanz enthalten`, { block: b.name }); }
+    if (b.type === 'DB' && b.instanceOf) { const c = canonType(b.instanceOf, reg); if (!IEC[c] && (reg.blocks.get(c.toLowerCase()) || {}).type !== 'FB') M('err', `Instanz-DB „${b.name}“: Typ „${b.instanceOf}“ ist kein FB`, { block: b.name }); }
+    if (b.type === 'DB') continue;
+    const g = blockScl(b, reg); for (const e of g.errs) M('err', e.msg, { block: b.name, net: e.net });
+    const sc = makeScope(b, reg, g.temps); let stmts = [];
+    try { const ps = new Parser(lex(g.text)); const perr = []; const ast = ps.program(perr); sc.errs.push(...perr); stmts = compileList(ast, sc); }
+    catch (e) { if (e instanceof SclError) sc.errs.push({ line: e.line, msg: e.msg }); else throw e; }
+    const where = l => { if (!g.map) return { line: l }; const m = g.map.find(m => l >= m.from && l <= m.to); return { net: m ? m.net : 0 }; };
+    for (const e of sc.errs) M('err', e.msg, { block: b.name, ...where(e.line) });
+    for (const w of sc.warns) M('warn', w.msg, { block: b.name, ...where(w.line) });
+    const localDefs = [...sc.vars.values()].filter(v => b.type === 'FB' ? v.sec === 'Temp' : true);
+    code.set(b.name.toLowerCase(), { block: b, stmts, sc, locals: localDefs, gen: g });
+  }
+  const obs = P.blocks.filter(b => b.type === 'OB');
+  if (!obs.some(b => (b.number | 0) === 1 || b.number >= 123)) M('warn', 'Kein Programmzyklus-OB (OB1) vorhanden');
+  const errs = msgs.filter(m => m.lvl === 'err').length, warns = msgs.filter(m => m.lvl === 'warn').length;
+  M(errs ? 'err' : 'ok', `Übersetzen beendet: ${errs} Fehler, ${warns} Warnungen`);
+  return { code, msgs, reg, ok: errs === 0 };
+}
+
+/* ===================== Simulierte CPU ===================== */
+function mergeMem(n, o) { if (!o || typeof o !== 'object') return; for (const k of Object.keys(n)) if (k in o) {
+  if (n[k] && typeof n[k] === 'object') mergeMem(n[k], o[k]); else if (typeof n[k] === typeof o[k]) n[k] = o[k]; } for (const k of Object.keys(o)) if (k[0] === '_' && !(k in n)) n[k] = o[k]; }
+class PLC {
+  constructor() { this.state = 'STOP'; this.G = {}; this.D = {}; this.prog = null; this.last = {}; this.diag = []; this.cyc = { last: 0, min: 0, max: 0, n: 0 }; this.timer = null; this.onEvent = () => {}; }
+  log(msg, lvl = 'info') { this.diag.unshift({ t: new Date(), msg, lvl }); if (this.diag.length > 200) this.diag.pop(); this.onEvent('diag'); }
+  initMem(prog, P, keep) {
+    const reg = prog.reg, G = {}, D = {};
+    for (const t of P.tags) if (t.name) G[t.name] = defVal(normType(t.type), t.init, reg);
+    for (const b of P.blocks) if (b.type === 'DB') D[b.name] = b.instanceOf ? defVal(canonType(b.instanceOf, reg), null, reg) : (() => { const o = {}; for (const v of ifaceVars(b, ['Static'])) o[v.name] = defVal(canonType(v.type, reg), v.init, reg); return o; })();
+    if (keep) { mergeMem(G, this.G); mergeMem(D, this.D); }
+    this.G = G; this.D = D;
+  }
+  load(prog, P) { this.initMem(prog, P, true); this.prog = prog; this.last = {}; this.log('Programm in CPU geladen (' + prog.code.size + ' Codebausteine)'); }
+  memReset(P) { if (!this.prog) return; const wasRun = this.state === 'RUN'; if (wasRun) this.stop('Urlöschen'); this.initMem(this.prog, P, false); this.last = {}; this.log('Urlöschen: Datenwerte auf Startwerte zurückgesetzt'); }
+  newLocals(lo) { const cb = this.prog.code.get(lo); const L = {}; for (const v of cb.locals) L[v.name] = defVal(v.type, v.init, this.prog.reg); return L; }
+  exec(lo, L, ctx) {
+    const cb = this.prog.code.get(lo); if (!cb) throw new PlcError('Baustein „' + lo + '“ nicht geladen');
+    if (++ctx.depth > 24) throw new PlcError('Maximale Schachtelungstiefe überschritten');
+    const prev = ctx.L, prevB = ctx.blk; ctx.L = L; ctx.blk = cb.block.name;
+    try { execList(cb.stmts, ctx); } finally { ctx.L = prev; ctx.blk = prevB; ctx.depth--; }
+    this.last[lo] = L;
+  }
+  runFB(lo, inst, ctx) { const cb = this.prog.code.get(lo); if (!cb) throw new PlcError('FB „' + lo + '“ nicht geladen');
+    for (const v of cb.locals) inst[v.name] = defVal(v.type, v.init, this.prog.reg); this.exec(lo, inst, ctx); }
+  ctx(now) { return { G: this.G, D: this.D, L: null, now: now ?? (typeof performance !== 'undefined' ? performance.now() : Date.now()), rt: this, guard: 0, depth: 0, blk: null }; }
+  runOBs(filter, now) { const obs = [...this.prog.code.values()].filter(c => c.block.type === 'OB' && filter(c.block.number | 0)).sort((a, b) => (a.block.number | 0) - (b.block.number | 0));
+    const ctx = this.ctx(now); for (const cb of obs) { ctx.guard = 0; this.exec(cb.block.name.toLowerCase(), this.newLocals(cb.block.name.toLowerCase()), ctx); } return ctx; }
+  scan(now) {
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now(); let ctx;
+    try { ctx = this.runOBs(n => n === 1 || n >= 123, now); }
+    catch (e) { this.stop('Laufzeitfehler' + (e && e.message ? ': ' + e.message : ''), 'err'); if (!(e instanceof PlcError)) console.error(e); return; }
+    const dt = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0; const c = this.cyc; c.last = dt; c.n++;
+    c.min = c.n === 1 ? dt : Math.min(c.min, dt); c.max = Math.max(c.max, dt);
+  }
+  start(interval = 10) {
+    if (!this.prog) { this.log('Kein Programm geladen', 'warn'); return false; } if (this.state === 'RUN') return true;
+    try { this.runOBs(n => n === 100); } catch (e) { this.stop('Fehler im Anlauf-OB: ' + e.message, 'err'); return false; }
+    this.state = 'RUN'; this.cyc = { last: 0, min: 0, max: 0, n: 0 }; this.log('Betriebszustand STOP → RUN');
+    if (typeof setInterval !== 'undefined' && interval) this.timer = setInterval(() => this.scan(), interval);
+    this.onEvent('state'); return true;
+  }
+  stop(reason, lvl = 'info') { if (this.timer) clearInterval(this.timer); this.timer = null; const was = this.state; this.state = 'STOP';
+    this.log((was === 'RUN' ? 'Betriebszustand RUN → STOP' : 'STOP') + (reason ? ' – ' + reason : ''), lvl); this.onEvent('state'); }
+}
+
+/* ===================== Externe Quellen (.scl) ===================== */
+function indent(s, n = 3) { const p = ' '.repeat(n); return s.split('\n').map(l => l ? p + l : l).join('\n'); }
+function declLine(v) { return `${v.name} : ${/^[A-Za-z_]\w*$/.test(v.type) && !IEC[normType(v.type)] && !BASIC_TYPES.includes(normType(v.type)) ? '"' + v.type + '"' : normType(v.type)}${v.init ? ' := ' + v.init : ''};${v.comment ? '   // ' + v.comment : ''}`; }
+const SEC_KW = { Input: 'VAR_INPUT', Output: 'VAR_OUTPUT', InOut: 'VAR_IN_OUT', Static: 'VAR', Temp: 'VAR_TEMP' };
+function genSource(P) {
+  const reg = buildReg(P), out = [];
+  const order = { FB: 0, FC: 1, DB: 2, OB: 3 }; const blocks = [...P.blocks].sort((a, b) => order[a.type] - order[b.type] || (a.number | 0) - (b.number | 0));
+  for (const b of blocks) {
+    const vars = (SECTIONS[b.type] || []).map(s => { const vs = (b.iface && b.iface[s]) || []; if (!vs.length && b.type !== 'DB') return ''; return indent(`${SEC_KW[s]}\n${indent(vs.map(declLine).join('\n'))}\nEND_VAR`) + '\n'; }).join('');
+    if (b.type === 'DB') {
+      out.push(`DATA_BLOCK "${b.name}"\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\nNON_RETAIN\n${b.instanceOf ? (IEC[canonType(b.instanceOf, reg)] ? canonType(b.instanceOf, reg) : '"' + canonType(b.instanceOf, reg) + '"') + '\n' : vars}\nBEGIN\n\nEND_DATA_BLOCK\n`); continue; }
+    const g = blockScl(b, reg); let body = g.text; let tempDecl = '';
+    if (g.temps.length) tempDecl = indent(`VAR_TEMP\n${indent(g.temps.map(t => `${t.name} : Bool;`).join('\n'))}\nEND_VAR`) + '\n';
+    let v2 = vars; if (tempDecl) { if (/VAR_TEMP\n/.test(v2)) v2 = v2.replace(/(VAR_TEMP\n)/, '$1' + g.temps.map(t => `      ${t.name} : Bool;\n`).join('')); else v2 += tempDecl; }
+    const hdr = b.type === 'FB' ? `FUNCTION_BLOCK "${b.name}"` : b.type === 'FC' ? `FUNCTION "${b.name}" : Void` : `ORGANIZATION_BLOCK "${b.name}"\nTITLE = "${(b.number | 0) === 100 ? 'Startup' : 'Main Program Sweep (Cycle)'}"`;
+    const end = b.type === 'FB' ? 'END_FUNCTION_BLOCK' : b.type === 'FC' ? 'END_FUNCTION' : 'END_ORGANIZATION_BLOCK';
+    const note = b.lang !== 'SCL' ? `// Automatisch aus ${b.lang === 'LAD' ? 'KOP' : 'FUP'} erzeugt\n` : '';
+    out.push(`${hdr}\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\n${v2}\nBEGIN\n${indent(note + body)}\nEND_${end.slice(4)}\n`);
+  }
+  return out.join('\n');
+}
+function dedent(s) { const ls = s.replace(/\t/g, '   ').split('\n'); while (ls.length && !ls[0].trim()) ls.shift(); while (ls.length && !ls[ls.length - 1].trim()) ls.pop();
+  const ind = Math.min(...ls.filter(l => l.trim()).map(l => l.match(/^ */)[0].length), 99); return ls.map(l => l.slice(Math.min(ind, l.match(/^ */)[0].length))).join('\n'); }
+function parseSource(text) {
+  const res = [], re = /\b(FUNCTION_BLOCK|FUNCTION|ORGANIZATION_BLOCK|DATA_BLOCK)\s+("([^"]+)"|([A-Za-z_]\w*))([\s\S]*?)\bEND_\1\b/g; let m;
+  const secMap = { VAR_INPUT: 'Input', VAR_OUTPUT: 'Output', VAR_IN_OUT: 'InOut', VAR_TEMP: 'Temp', VAR: 'Static' };
+  while ((m = re.exec(text))) {
+    const kind = m[1], name = m[3] || m[4]; let rest = m[5];
+    const type = { FUNCTION_BLOCK: 'FB', FUNCTION: 'FC', ORGANIZATION_BLOCK: 'OB', DATA_BLOCK: 'DB' }[kind];
+    const bi = rest.search(/^\s*BEGIN\b/m); const head = bi >= 0 ? rest.slice(0, bi) : rest; let body = bi >= 0 ? rest.slice(bi).replace(/^\s*BEGIN\b/, '') : '';
+    const iface = {}; const vre = /\b(VAR_INPUT|VAR_OUTPUT|VAR_IN_OUT|VAR_TEMP|VAR)\b(?:\s+(?:RETAIN|NON_RETAIN|CONSTANT|DB_SPECIFIC))?([\s\S]*?)\bEND_VAR\b/g; let v;
+    while ((v = vre.exec(head))) { const sec = type === 'DB' ? 'Static' : secMap[v[1]]; iface[sec] = iface[sec] || [];
+      const dre = /^\s*"?([A-Za-z_]\w*)"?\s*(?:\{[^}]*\})?\s*:\s*([^;]+?)\s*(?::=\s*([^;]+?))?\s*;[ \t]*(?:\/\/(.*))?$/gm; let d;
+      while ((d = dre.exec(v[2]))) { if (/^\s*(STRUCT|ARRAY)/i.test(d[2])) continue; iface[sec].push({ name: d[1], type: normType(d[2]), init: (d[3] || '').trim(), comment: (d[4] || '').trim() }); } }
+    const b = { name, type, iface };
+    if (type === 'DB') { const rem = head.replace(/\{[^}]*\}/g, '').replace(/\b(VAR[\s\S]*?END_VAR)\b/g, '').replace(/^\s*(VERSION|TITLE|AUTHOR|FAMILY|NAME)\s*[:=].*$/gim, '').replace(/\bNON_RETAIN\b|\bRETAIN\b/g, '').trim();
+      if (rem) b.instanceOf = normType(rem.split(/\s+/)[0]); delete b.iface; if (!b.instanceOf) b.iface = { Static: iface.Static || [] }; }
+    else { b.lang = 'SCL'; b.scl = dedent(body); }
+    res.push(b);
+  }
+  return res;
+}
+
+
+function exampleProject() {
+  const T = (name, type, addr, comment, init = '') => ({ name, type, addr, comment, init });
+  const V = (name, type, init = '', comment = '') => ({ name, type, init, comment });
+  return {
+    name: 'Pumpstation', cpu: 'CPU 1516-3 PN/DP (Simulation)', version: 1,
+    tags: [
+      T('Start_Taster', 'Bool', '%I0.0', 'Taster Anlage EIN'),
+      T('Stop_Taster', 'Bool', '%I0.1', 'Taster Anlage AUS (Öffner, unbetätigt = 1)', 'TRUE'),
+      T('Niveau_Tief', 'Bool', '%I0.2', 'Schwimmer: Behälter leer → Pumpe anfordern'),
+      T('Niveau_Hoch', 'Bool', '%I0.3', 'Schwimmer: Behälter voll → Pumpe aus'),
+      T('Rueckmeldung_P1', 'Bool', '%I0.4', 'Schütz-Rückmeldung Pumpe 1'),
+      T('Quittieren', 'Bool', '%I0.5', 'Taster Störung quittieren'),
+      T('Druck_Roh', 'Int', '%IW64', 'Druck Analogwert 0…27648'),
+      T('Pumpe_1', 'Bool', '%Q0.0', 'Schütz Pumpe 1'),
+      T('Lampe_Betrieb', 'Bool', '%Q0.1', 'Meldeleuchte Betrieb'),
+      T('Lampe_Stoerung', 'Bool', '%Q0.2', 'Meldeleuchte Störung'),
+      T('Anlage_Ein', 'Bool', '%M0.0', 'Anlage eingeschaltet (Selbsthaltung)'),
+      T('Druck_bar', 'Real', '%MD10', 'Druck skaliert in bar'),
+      T('Pumpenstarts', 'Int', '%MW20', 'Anzahl Pumpenstarts'),
+    ],
+    blocks: [
+      { name: 'Main', type: 'OB', number: 1, lang: 'LAD', iface: { Temp: [] }, networks: [
+        { title: 'Anlage EIN/AUS mit Selbsthaltung', comment: 'Start oder Selbsthaltung, Stop als Öffner in Reihe', rows: 2, cols: 6,
+          cells: { '0,0': { t: 'NO', op: '"Start_Taster"' }, '1,0': { t: 'NO', op: '"Anlage_Ein"' }, '0,1': { t: 'NO', op: '"Stop_Taster"' },
+            '0,2': { t: 'W' }, '0,3': { t: 'W' }, '0,4': { t: 'W' }, '0,5': { t: 'COIL', op: '"Anlage_Ein"' } }, links: { '0,1': true } },
+        { title: 'Pumpe 1', comment: 'Aufruf des Pumpenbausteins mit Instanz-DB', rows: 1, cols: 3,
+          cells: { '0,0': { t: 'CALL', blk: 'FB_Pumpe', inst: '"IDB_Pumpe_1"', params: { Freigabe: '"Anlage_Ein"', Niveau_Tief: '"Niveau_Tief"', Niveau_Hoch: '"Niveau_Hoch"', Rueckmeldung: '"Rueckmeldung_P1"', Quittieren: '"Quittieren"', Ueberwachungszeit: 'T#3s', Pumpe_Ein: '"Pumpe_1"', Starts: '"Pumpenstarts"' } } }, links: {} },
+        { title: 'Druck skalieren', comment: '', rows: 1, cols: 3,
+          cells: { '0,0': { t: 'CALL', blk: 'FC_Skalierung', params: { Rohwert: '"Druck_Roh"', Min: '0.0', Max: '10.0', Wert: '"Druck_bar"' } } }, links: {} },
+        { title: 'Meldungen', comment: '', rows: 1, cols: 3, cells: { '0,0': { t: 'CALL', blk: 'FC_Meldungen', params: {} } }, links: {} },
+      ] },
+      { name: 'FB_Pumpe', type: 'FB', number: 1, lang: 'SCL', iface: {
+        Input: [V('Freigabe', 'Bool'), V('Niveau_Tief', 'Bool'), V('Niveau_Hoch', 'Bool'), V('Rueckmeldung', 'Bool'), V('Quittieren', 'Bool'), V('Ueberwachungszeit', 'Time', 'T#3s', 'Max. Zeit bis Rückmeldung')],
+        Output: [V('Pumpe_Ein', 'Bool'), V('Stoerung', 'Bool'), V('Starts', 'Int')], InOut: [],
+        Static: [V('Anforderung', 'Bool'), V('tRueck', 'TON_TIME', '', 'Rückmeldeüberwachung'), V('rtStart', 'R_TRIG')], Temp: [] },
+        scl: `// Zweipunktregelung über Schwimmerschalter
+IF #Niveau_Tief THEN
+   #Anforderung := TRUE;
+ELSIF #Niveau_Hoch THEN
+   #Anforderung := FALSE;
+END_IF;
+
+// Störung quittieren
+IF #Quittieren THEN
+   #Stoerung := FALSE;
+END_IF;
+
+#Pumpe_Ein := #Freigabe AND #Anforderung AND NOT #Stoerung;
+
+// Rückmeldeüberwachung: Schütz muss innerhalb der Zeit anziehen
+#tRueck(IN := #Pumpe_Ein AND NOT #Rueckmeldung,
+        PT := #Ueberwachungszeit);
+IF #tRueck.Q THEN
+   #Stoerung := TRUE;
+   #Pumpe_Ein := FALSE;
+END_IF;
+
+// Pumpenstarts zählen (positive Flanke)
+#rtStart(CLK := #Pumpe_Ein);
+IF #rtStart.Q THEN
+   #Starts := #Starts + 1;
+END_IF;
+` },
+      { name: 'FC_Skalierung', type: 'FC', number: 1, lang: 'SCL', iface: {
+        Input: [V('Rohwert', 'Int'), V('Min', 'Real'), V('Max', 'Real')], Output: [V('Wert', 'Real')], InOut: [], Temp: [V('Norm', 'Real')] },
+        scl: `// Analogwert 0…27648 auf Min…Max skalieren
+#Norm := NORM_X(MIN := 0, VALUE := #Rohwert, MAX := 27648);
+#Wert := SCALE_X(MIN := #Min, VALUE := #Norm, MAX := #Max);
+` },
+      { name: 'FC_Meldungen', type: 'FC', number: 2, lang: 'FBD', iface: { Input: [], Output: [], InOut: [], Temp: [] }, networks: [
+        { title: 'Betriebsmeldung', comment: '', root: { t: 'ASSIGN', op: '"Lampe_Betrieb"', in: { neg: false, n: { t: 'AND', ins: [{ neg: false, n: { t: 'OP', op: '"Pumpe_1"' } }, { neg: false, n: { t: 'OP', op: '"Anlage_Ein"' } }] } } } },
+        { title: 'Störmeldung', comment: 'Pumpenstörung oder Überdruck > 6 bar', root: { t: 'ASSIGN', op: '"Lampe_Stoerung"', in: { neg: false, n: { t: 'OR', ins: [{ neg: false, n: { t: 'OP', op: '"IDB_Pumpe_1".Stoerung' } }, { neg: false, n: { t: 'CMP', cmp: '>', a: '"Druck_bar"', b: '6.0' } }] } } } },
+      ] },
+      { name: 'IDB_Pumpe_1', type: 'DB', number: 1, instanceOf: 'FB_Pumpe' },
+    ],
+    watch: [{ expr: '"Anlage_Ein"', ctrl: '' }, { expr: '"Pumpe_1"', ctrl: '' }, { expr: '"IDB_Pumpe_1".Stoerung', ctrl: '' }, { expr: '"IDB_Pumpe_1".tRueck.ET', ctrl: '' }, { expr: '"Druck_bar"', ctrl: '' }, { expr: '"Pumpenstarts"', ctrl: '' }],
+  };
+}
+
+/* ===================== Zustand ===================== */
+const LS_KEY = 'sps-werkbank-projekt-v1';
+function loadLocal() { try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+let P = loadLocal() || exampleProject();
+let prog = null; const plc = new PLC();
+const ui = { sel: { k: 'block', name: 'Main' }, navOpen: false, infoOpen: false, msgs: [], monitor: true, ladSel: null, fbdSel: null, ifaceOpen: {}, dirty: true, tast: false, gotoLine: null, gotoNet: null };
+let H = [];
+const A = fn => { H.push(fn); return `data-a="${H.length - 1}"`; };
+const B = fn => { H.push(fn); return `data-b="${H.length - 1}"`; };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const trunc = (s, n) => { s = String(s ?? ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+let saveT = null;
+function save() { if (typeof DESK !== 'undefined' && DESK && !fileDirty) setFileDirty(true); clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(P)); } catch (e) {} }, 300); }
+function touch(o = {}) { ui.dirty = true; save(); if (o.nav) renderNav(); if (o.ed !== false) renderEditor(); renderTop(); }
+function toast(msg, lvl = '') { const t = $('#toast'); t.textContent = msg; t.className = 'show ' + lvl; clearTimeout(t._h); t._h = setTimeout(() => t.className = '', 2600); }
+function curBlock() { return ui.sel.k === 'block' ? P.blocks.find(b => b.name === ui.sel.name) : null; }
+function reg() { return buildReg(P); }
+const LANG_L = { SCL: 'SCL', LAD: 'KOP', FBD: 'FUP' };
+const TYPE_ORDER = { OB: 0, FB: 1, FC: 2, DB: 3 };
+
+/* ===================== Ereignisse ===================== */
+document.addEventListener('click', e => { const el = e.target.closest('[data-a]'); if (el && H[el.dataset.a]) { H[el.dataset.a](el, e); } });
+document.addEventListener('change', e => { const el = e.target.closest('[data-b]'); if (el && H[el.dataset.b]) H[el.dataset.b](el.type === 'checkbox' ? el.checked : el.value, el); });
+document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.iface) ui.ifaceOpen[d.dataset.iface] = d.open; }, true);
+document.addEventListener('keydown', e => { if (e.target.matches('input[data-b]') && e.key === 'Enter') e.target.blur(); });
+let tastEl = null;
+document.addEventListener('pointerdown', e => { const el = e.target.closest('[data-tast]'); if (!el || !ui.tast) return; tastEl = el; writeTag(el.dataset.tast, true); });
+document.addEventListener('pointerup', () => { if (tastEl) { writeTag(tastEl.dataset.tast, false); tastEl = null; } });
+document.addEventListener('input', e => { const el = e.target; if (el.dataset.ana) { writeTag(el.dataset.ana, +el.value); } });
+
+/* ===================== Aktionen ===================== */
+function doCompile(quiet) {
+  let res; try { res = compileProject(P); } catch (e) { console.error(e); toast('Interner Fehler: ' + e.message, 'err'); return null; }
+  ui.msgs = res.msgs; if (!res.ok) ui.infoOpen = true;
+  if (!quiet || !res.ok) toast(res.msgs[res.msgs.length - 1].msg, res.ok ? 'ok' : 'err');
+  renderNav(); renderEditor(); renderInfo(); return res;
+}
+function doLoad() {
+  const res = doCompile(true); if (!res) return false;
+  if (!res.ok) { toast('Laden abgebrochen – Übersetzungsfehler beheben', 'err'); return false; }
+  prog = res; plc.load(res, P); evalCache.clear(); ui.dirty = false; toast('In CPU geladen' + (plc.state === 'RUN' ? ' (im RUN übernommen)' : ''), 'ok'); renderTop(); renderEditor(); return true;
+}
+function doRun() { if ((!plc.prog || ui.dirty) && !doLoad()) return; if (plc.start()) toast('CPU im RUN', 'ok'); renderTop(); }
+function doStop() { plc.stop(''); renderTop(); }
+function select(k, name) { ui.sel = { k, name }; ui.navOpen = false; ui.ladSel = null; ui.fbdSel = null; renderNav(); renderEditor(); }
+plc.onEvent = k => { renderTop(); if (ui.sel.k === 'diag') renderEditor(); if (k === 'state' && plc.state === 'STOP' && plc.diag[0] && plc.diag[0].lvl === 'err') { toast(plc.diag[0].msg, 'err'); } };
+
+/* ===================== Kopfzeile ===================== */
+function renderTop() {
+  const st = plc.state, sync = plc.prog ? (ui.dirty ? '<span class="sync bad" title="Offline-Projekt weicht vom geladenen Programm ab">online ≠ offline</span>' : '<span class="sync ok">online = offline</span>') : '<span class="sync">nicht geladen</span>';
+  $('#top').innerHTML = `
+  <button class="ib navt" ${A(() => { ui.navOpen = !ui.navOpen; renderNav(); })} aria-label="Projektnavigation">☰</button>
+  <div class="brand"><span class="logo"></span><span>SPS-Werkbank</span></div>
+  <input class="pname" value="${esc(P.name)}" ${B(v => { P.name = v; save(); })} aria-label="Projektname">
+  <div class="tb">
+    <button ${A(() => doCompile())} title="Alle Bausteine übersetzen"><span class="i">⚙</span><span class="t">Übersetzen</span></button>
+    <button ${A(doLoad)} title="Übersetzen und in die simulierte CPU laden"><span class="i">⇩</span><span class="t">Laden</span></button>
+    <button class="run ${st === 'RUN' ? 'act' : ''}" ${A(doRun)}><span class="i">▶</span><span class="t">RUN</span></button>
+    <button class="stop ${st === 'STOP' ? 'act' : ''}" ${A(doStop)}><span class="i">■</span><span class="t">STOP</span></button>
+    <button class="mon ${ui.monitor ? 'act' : ''}" ${A(() => { ui.monitor = !ui.monitor; if (!ui.monitor) clearLive(); renderTop(); })} title="Beobachten ein/aus"><span class="i">◎</span><span class="t">Beobachten</span></button>
+  </div>
+  <div class="cpu ${st}"><span class="led"></span><b>${st}</b><span id="cyc" class="cyc"></span>${sync}</div>`;
+}
+
+/* ===================== Projektnavigation ===================== */
+function renderNav() {
+  const errs = new Set(ui.msgs.filter(m => m.lvl === 'err' && m.block).map(m => m.block));
+  const tagErr = ui.msgs.some(m => m.lvl === 'err' && m.tags);
+  const bl = [...P.blocks].sort((a, b) => TYPE_ORDER[a.type] - TYPE_ORDER[b.type] || (a.number | 0) - (b.number | 0) || a.name.localeCompare(b.name));
+  const it = (k, name, html, err) => `<div class="tn item ${ui.sel.k === k && (name == null || ui.sel.name === name) ? 'sel' : ''}" ${A(() => select(k, name))}>${html}${err ? '<span class="dot"></span>' : ''}</div>`;
+  $('#nav').className = ui.navOpen ? 'open' : '';
+  $('#nav').innerHTML = `<div class="navh">Projektnavigation</div>
+  <div class="tree">
+    <div class="tn root"><span class="ico cpu-i"></span>PLC_1 <small>[${esc(P.cpu || 'CPU (Simulation)')}]</small></div>
+    <div class="tn grp">Programmbausteine</div>
+    <div class="tn add" ${A(addBlockDlg)}>＋ Neuen Baustein hinzufügen</div>
+    ${bl.map(b => it('block', b.name, `<span class="bt ${b.type}">${b.type}</span><span class="bn">${esc(b.name)}</span><small>${b.type}${b.number ?? ''}${b.type !== 'DB' ? ' · ' + LANG_L[b.lang] : b.instanceOf ? ' · Instanz' : ''}</small>`, errs.has(b.name))).join('')}
+    <div class="tn grp">PLC-Variablen</div>
+    ${it('tags', null, '<span class="ico tag-i"></span>Standard-Variablentabelle <small>' + P.tags.length + '</small>', tagErr)}
+    <div class="tn grp">Online</div>
+    ${it('watch', null, '<span class="ico watch-i"></span>Beobachtung &amp; Simulation')}
+    ${it('diag', null, '<span class="ico diag-i"></span>Online &amp; Diagnose')}
+    <div class="tn grp">Austausch</div>
+    ${it('src', null, '<span class="ico src-i"></span>Externe Quellen &amp; Projektdatei')}
+  </div>`;
+  $('#scrim').className = ui.navOpen ? 'on' : '';
+}
+
+/* ===================== Info-Fenster ===================== */
+function renderInfo() {
+  const e = ui.msgs.filter(m => m.lvl === 'err' && !/^Übersetzen beendet/.test(m.msg)).length, w = ui.msgs.filter(m => m.lvl === 'warn').length;
+  $('#info').className = ui.infoOpen ? 'open' : '';
+  $('#info').innerHTML = `<div class="infoh" ${A(() => { ui.infoOpen = !ui.infoOpen; renderInfo(); })}><b>Info</b> · Übersetzen <span class="cnt e">✖ ${e}</span><span class="cnt w">⚠ ${w}</span><span class="chev">${ui.infoOpen ? '▾' : '▴'}</span></div>
+  <div class="infob">${ui.msgs.length ? ui.msgs.map(m => `<div class="msg ${m.lvl}" ${A(() => gotoMsg(m))}><span class="mi">${m.lvl === 'err' ? '✖' : m.lvl === 'warn' ? '⚠' : '✔'}</span><span class="mw">${m.block ? esc(m.block) + (m.net != null ? ' · NW ' + (m.net + 1) : m.line ? ' · Zeile ' + m.line : '') : m.tags ? 'Variablen' : ''}</span><span>${esc(m.msg)}</span></div>`).join('') : '<div class="msg">Noch nicht übersetzt.</div>'}</div>`;
+}
+function gotoMsg(m) {
+  if (m.tags) return select('tags');
+  if (!m.block) return;
+  ui.gotoLine = m.line || null; ui.gotoNet = m.net ?? null; select('block', m.block);
+}
+
+/* ===================== Live-Werte ===================== */
+const evalCache = new Map();
+function fmtTime(ms) { if (!ms) return '0MS'; let s = '', v = Math.abs(ms); const u = [[86400000, 'D'], [3600000, 'H'], [60000, 'M'], [1000, 'S'], [1, 'MS']];
+  for (const [f, n] of u) { const q = Math.floor(v / f); if (q) { s += q + n + '_'; v -= q * f; } } return (ms < 0 ? '-' : '') + s.replace(/_$/, ''); }
+function fmt(v, t) { if (v === undefined || v === null) return '—'; if (t === 'Bool') return v ? 'TRUE' : 'FALSE'; if (t === 'Time') return 'T#' + fmtTime(v);
+  if (t === 'Real' || t === 'LReal') return Number.isFinite(v) ? String(+v.toFixed(4)) : String(v); return String(v); }
+function getEval(expr, sc) {
+  const key = sc + '\u0001' + expr; let c = evalCache.get(key); if (c) return c;
+  try { const cb = sc && prog ? prog.code.get(sc) : null; const scope = cb ? cb.sc : makeScope(null, prog.reg); c = compileExprString(expr, scope); }
+  catch (e) { c = { err: e.msg || String(e) }; }
+  evalCache.set(key, c); return c;
+}
+function liveTick() {
+  const cyc = $('#cyc'); if (cyc) cyc.textContent = plc.state === 'RUN' ? plc.cyc.last.toFixed(2) + ' ms' : '';
+  document.querySelectorAll('[data-cyc]').forEach(el => { const k = el.dataset.cyc; el.textContent = plc.cyc.n ? plc.cyc[k].toFixed(3) + ' ms' : '—'; });
+  if (!ui.monitor || !plc.prog || !prog) return;
+  const ctxs = {};
+  document.querySelectorAll('#ed [data-ev], #ed [data-eb]').forEach(el => {
+    const sc = el.dataset.sc || '', ex = el.dataset.ev ?? el.dataset.eb; const c = getEval(ex, sc);
+    let v; if (!c.err) { const ctx = ctxs[sc] || (ctxs[sc] = Object.assign(plc.ctx(), { L: plc.last[sc] || {} })); try { v = c.f(ctx); } catch (e) { v = undefined; } }
+    if (el.dataset.ev !== undefined) { const txt = c.err ? '—' : (el.dataset.pre || '') + fmt(v, c.t); if (el.textContent !== txt) el.textContent = txt; el.classList.toggle('t', v === true); el.classList.toggle('f', v === false); }
+    else { el.classList.toggle('on', v === true); el.classList.toggle('off', v !== true); }
+  });
+  document.body.classList.add('live');
+}
+function clearLive() { document.body.classList.remove('live'); document.querySelectorAll('#ed [data-ev]').forEach(el => { el.textContent = ''; }); document.querySelectorAll('.on').forEach(el => el.classList.remove('on')); }
+setInterval(liveTick, 120);
+function writeTag(name, v) {
+  if (!plc.prog) { toast('Erst Programm laden (⇩ Laden)', 'warn'); return; }
+  const t = P.tags.find(t => t.name === name); if (!t) return; plc.G[name] = normType(t.type) === 'Bool' ? !!v : +v; liveTick();
+}
+function writeExpr(expr, val) {
+  if (!plc.prog) { toast('Erst Programm laden (⇩ Laden)', 'warn'); return false; }
+  try { const r = compileRefString(expr, makeScope(null, prog.reg)); if (r.kind !== 'bool' && r.kind !== 'num') throw new SclError('Nur elementare Operanden steuerbar');
+    const v = parseInit(val, r.t, prog.reg); if (v === null) throw new SclError('Steuerwert fehlt'); r.set(plc.ctx(), v); liveTick(); return true; }
+  catch (e) { toast((e.msg || e.message) + ' (' + expr + ')', 'err'); return false; }
+}
+
+/* ===================== Editor-Verteiler ===================== */
+function renderEditor() {
+  H = H.slice(0, 0); renderTop(); renderNav(); renderInfo();
+  const ed = $('#ed'); const sc = ed.scrollTop;
+  updateLists();
+  const k = ui.sel.k; let html = '';
+  if (k === 'tags') html = tagsView();
+  else if (k === 'watch') html = watchView();
+  else if (k === 'diag') html = diagView();
+  else if (k === 'src') html = srcView();
+  else { const b = curBlock(); if (!b) { ui.sel = { k: 'tags' }; return renderEditor(); } html = blockView(b); }
+  ed.innerHTML = html; ed.scrollTop = sc;
+  if (k === 'block') afterBlockRender(curBlock());
+  liveTick();
+}
+function updateLists() {
+  const r = reg(); const b = curBlock();
+  $('#typelist').innerHTML = [...BASIC_TYPES, ...IEC_NAMES, ...P.blocks.filter(b => b.type === 'FB').map(b => b.name)].map(t => `<option value="${esc(t)}">`).join('');
+  const ops = P.tags.map(t => `"${t.name}"`);
+  if (b && b.type !== 'DB') for (const s of SECTIONS[b.type]) for (const v of (b.iface[s] || [])) { ops.push('#' + v.name);
+    const ct = canonType(v.type, r); if (IEC[ct]) for (const m of Object.keys(IEC[ct].outs)) ops.push(`#${v.name}.${m}`); }
+  for (const d of P.blocks.filter(x => x.type === 'DB')) { const t = d.instanceOf ? canonType(d.instanceOf, r) : null;
+    const vars = t ? (IEC[t] ? Object.keys({ ...IEC[t].ins, ...IEC[t].outs }) : ifaceVars(r.blocks.get(t.toLowerCase()) || {}, ['Input', 'Output', 'InOut', 'Static']).map(v => v.name)) : ifaceVars(d, ['Static']).map(v => v.name);
+    for (const v of vars) ops.push(`"${d.name}".${v}`); }
+  $('#oplist').innerHTML = ops.map(o => `<option value="${esc(o)}">`).join('');
+}
+
+/* ===================== Variablentabelle ===================== */
+const TAG_TYPES = ['Bool', 'Byte', 'Word', 'Int', 'UInt', 'DInt', 'Real', 'LReal', 'Time'];
+function renameRefs(oldN, newN, scopeBlock) {
+  if (!oldN || oldN === newN) return;
+  const reQ = new RegExp('"' + oldN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"', 'gi');
+  const reL = new RegExp('#' + oldN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+  const walk = (o, local) => { for (const k of Object.keys(o)) { const v = o[k];
+    if (typeof v === 'string') { if (local) o[k] = v.replace(reL, '#' + newN); else { o[k] = v.replace(reQ, '"' + newN + '"'); if ((k === 'type' || k === 'blk' || k === 'instanceOf') && v.toLowerCase() === oldN.toLowerCase()) o[k] = newN; } }
+    else if (v && typeof v === 'object') walk(v, local); } };
+  if (scopeBlock) { walk({ scl: scopeBlock.scl || '', _: 0 }, true); scopeBlock.scl = (scopeBlock.scl || '').replace(reL, '#' + newN); if (scopeBlock.networks) walk(scopeBlock.networks, true); }
+  else { walk(P.blocks, false); walk(P.watch || [], false); }
+}
+function tagsView() {
+  const rows = P.tags.map((t, i) => `<tr>
+    <td><input value="${esc(t.name)}" ${B(v => { const o = t.name; t.name = v.trim(); renameRefs(o, t.name); touch(); })}></td>
+    <td><select ${B(v => { t.type = v; touch(); })}>${TAG_TYPES.map(x => `<option ${normType(t.type) === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
+    <td><input class="mono" value="${esc(t.addr)}" ${B(v => { t.addr = v.trim().toUpperCase(); touch(); })} placeholder="%I0.0"></td>
+    <td><input class="mono" value="${esc(t.init)}" ${B(v => { t.init = v.trim(); touch(); })}></td>
+    <td class="live mono" data-ev="&quot;${esc(t.name)}&quot;"></td>
+    <td><input value="${esc(t.comment)}" ${B(v => { t.comment = v; save(); })}></td>
+    <td><button class="x" ${A(() => { P.tags.splice(i, 1); touch(); })} title="Löschen">✕</button></td></tr>`).join('');
+  return `<div class="edh"><div><h2>Standard-Variablentabelle</h2><div class="sub">${P.tags.length} PLC-Variablen · Eingänge %I, Ausgänge %Q, Merker %M</div></div>
+    <div class="acts"><button class="pri" ${A(() => { P.tags.push({ name: uniqName('Tag_', P.tags.map(t => t.name)), type: 'Bool', addr: nextAddr('M'), comment: '', init: '' }); touch(); })}>＋ Variable</button></div></div>
+  <div class="tw"><table class="grid"><thead><tr><th>Name</th><th>Datentyp</th><th>Adresse</th><th>Startwert</th><th class="live">Beobachtungswert</th><th>Kommentar</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function uniqName(base, list) { const s = new Set(list.map(x => x.toLowerCase())); let i = 1; while (s.has((base + i).toLowerCase())) i++; return base + i; }
+function nextAddr(area) { const used = new Set(P.tags.map(t => (t.addr || '').toUpperCase())); for (let b = 0; b < 100; b++) for (let i = 0; i < 8; i++) { const a = `%${area}${b}.${i}`; if (!used.has(a)) return a; } return ''; }
+
+/* ===================== Bausteine ===================== */
+const SEC_L = { Input: 'Input', Output: 'Output', InOut: 'InOut', Static: 'Static', Temp: 'Temp' };
+function blockView(b) {
+  const r = reg(); const lo = b.name.toLowerCase();
+  const head = `<div class="edh"><div><h2><span class="bt ${b.type}">${b.type}</span> ${esc(b.name)} <small>[${b.type}${b.number ?? ''}]</small></h2>
+    <div class="sub">${b.type === 'DB' ? (b.instanceOf ? 'Instanz-DB von „' + esc(b.instanceOf) + '“' : 'Global-DB') : (b.type === 'OB' ? ((b.number | 0) === 100 ? 'Anlauf (Startup)' : 'Programmzyklus') : b.type === 'FB' ? 'Funktionsbaustein mit Gedächtnis (Instanz)' : 'Funktion ohne Gedächtnis') + ' · Sprache ' + LANG_L[b.lang]}</div></div>
+    <div class="acts">${b.lang && b.lang !== 'SCL' ? `<button ${A(() => showGenScl(b))}>SCL anzeigen</button>` : ''}<button ${A(() => propsDlg(b))}>Eigenschaften</button><button class="danger" ${A(() => delBlockDlg(b))}>Löschen</button></div></div>`;
+  if (b.type === 'DB') {
+    if (b.instanceOf) { const t = canonType(b.instanceOf, r); const vars = IEC[t] ? Object.entries({ ...IEC[t].ins, ...IEC[t].outs }).map(([n, ty]) => ({ name: n, type: ty, sec: n in IEC[t].ins ? 'Input' : 'Output' })) : ifaceVars(r.blocks.get(t.toLowerCase()) || {}, ['Input', 'Output', 'InOut', 'Static']).map(v => ({ ...v, sec: '' }));
+      return head + `<p class="hint">Die Struktur eines Instanz-DB wird von „${esc(t)}“ vorgegeben. Werte hier beobachten, steuern in der Beobachtungstabelle.</p>
+      <div class="tw"><table class="grid"><thead><tr><th>Name</th><th>Datentyp</th><th class="live">Beobachtungswert</th></tr></thead><tbody>${vars.map(v => { const ct = canonType(v.type, r);
+        const ex = typeKind(ct, r) === 'iec' ? `"${b.name}".${v.name}.Q` : `"${b.name}".${v.name}`; return `<tr><td class="mono">${esc(v.name)}</td><td class="mono">${esc(v.type)}</td><td class="live mono" data-ev="${esc(ex)}" ${typeKind(ct, r) === 'iec' ? 'data-pre="Q="' : ''}></td></tr>`; }).join('')}</tbody></table></div>`; }
+    return head + ifaceHtml(b, true);
+  }
+  let body = '';
+  if (b.lang === 'SCL') body = sclHtml(b);
+  else if (b.lang === 'LAD') body = ladHtml(b);
+  else body = fbdHtml(b);
+  return head + ifaceHtml(b) + body;
+}
+function ifaceHtml(b, isDb) {
+  const lo = b.name.toLowerCase(), r = reg(); const open = ui.ifaceOpen[b.name] ?? (isDb || allVarNames(b).length <= 6);
+  const secs = SECTIONS[b.type];
+  const rows = secs.map(s => { b.iface[s] = b.iface[s] || []; return `<tr class="sec"><td colspan="6"><span>${SEC_L[s]}</span><button class="mini" ${A(() => { b.iface[s].push({ name: uniqName(s === 'Static' ? 'stat' : s === 'Temp' ? 'temp' : s.toLowerCase(), allVarNames(b)), type: 'Bool', init: '', comment: '' }); ui.ifaceOpen[b.name] = true; touch(); })}>＋ Zeile</button></td></tr>` +
+    b.iface[s].map((v, i) => { const ct = canonType(v.type, r); const iec = !!IEC[ct]; const ex = isDb ? `"${b.name}".${v.name}${iec ? '.Q' : ''}` : `#${v.name}${iec ? '.Q' : ''}`;
+      return `<tr><td><input class="mono" value="${esc(v.name)}" ${B(x => { const o = v.name; v.name = x.trim(); if (!isDb) renameRefs(o, v.name, b); touch(); })}></td>
+      <td><input class="mono" list="typelist" value="${esc(v.type)}" ${B(x => { v.type = x.trim(); touch(); })}></td>
+      <td><input class="mono" value="${esc(v.init)}" ${B(x => { v.init = x.trim(); touch(); })} ${iec || typeKind(ct, r) === 'fb' ? 'disabled' : ''}></td>
+      <td class="live mono" data-ev="${esc(ex)}" ${isDb ? '' : `data-sc="${esc(lo)}"`} ${iec ? 'data-pre="Q="' : ''}></td>
+      <td><input value="${esc(v.comment)}" ${B(x => { v.comment = x; save(); })}></td>
+      <td><button class="x" ${A(() => { b.iface[s].splice(i, 1); touch(); })}>✕</button></td></tr>`; }).join(''); }).join('');
+  return `<details class="iface" data-iface="${esc(b.name)}" ${open ? 'open' : ''}><summary>Schnittstelle</summary>
+  <div class="tw"><table class="grid"><thead><tr><th>Name</th><th>Datentyp</th><th>Startwert</th><th class="live">Beobachtungswert</th><th>Kommentar</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+}
+function allVarNames(b) { const o = []; for (const s of SECTIONS[b.type]) for (const v of b.iface[s] || []) o.push(v.name); return o; }
+function quickFix(m, b) {
+  let x = /Lokale Variable „#(\w+)“ ist nicht deklariert/.exec(m.msg);
+  if (x && b) return ` <button class="mini qf" ${A(() => declDlg(b, x[1]))}>Deklarieren…</button>`;
+  x = /PLC-Variable „"(\w+)"“ ist nicht definiert/.exec(m.msg) || /Bezeichner „(\w+)“ ist unbekannt/.exec(m.msg);
+  if (x && x[1].toUpperCase() !== 'FALSE') return ` <button class="mini qf" ${A(() => { P.tags.push({ name: x[1], type: 'Bool', addr: nextAddr('M'), comment: '', init: '' }); touch(); doCompile(true); toast('PLC-Variable „' + x[1] + '“ angelegt (Bool, ' + P.tags[P.tags.length - 1].addr + ')', 'ok'); })}>Als PLC-Variable anlegen</button>`;
+  return '';
+}
+function declDlg(b, name) {
+  const secs = SECTIONS[b.type];
+  modal(`<h3>„#${esc(name)}“ deklarieren</h3><label class="fl">Bereich<select id="dSec">${secs.map(s => `<option ${s === (b.type === 'FB' ? 'Static' : 'Temp') ? 'selected' : ''}>${s}</option>`).join('')}</select></label><label class="fl">Datentyp<input id="dType" class="mono" list="typelist" value="Bool"></label>`,
+    [['Abbrechen', closeModal], ['OK', () => { const sec = $('#dSec').value; (b.iface[sec] = b.iface[sec] || []).push({ name, type: $('#dType').value.trim() || 'Bool', init: '', comment: '' }); closeModal(); ui.ifaceOpen[b.name] = true; touch(); doCompile(true); }, 'pri']]);
+}
+function blockErrors(b) { return ui.msgs.filter(m => m.block === b.name && (m.lvl === 'err' || m.lvl === 'warn')); }
+
+/* ---------- SCL-Editor ---------- */
+const KW = new Set('IF THEN ELSIF ELSE END_IF CASE OF END_CASE FOR TO BY DO END_FOR WHILE END_WHILE REPEAT UNTIL END_REPEAT EXIT CONTINUE RETURN AND OR XOR NOT MOD REGION END_REGION'.split(' '));
+const KW2 = new Set(['TRUE', 'FALSE', ...Object.keys(BUILTIN), ...IEC_NAMES]);
+function hl(code) {
+  const re = /(\/\/[^\n]*|\(\*[\s\S]*?\*\)|\/\*[\s\S]*?\*\/)|("[^"\n]*")|('[^'\n]*')|(#[A-Za-z_]\w*)|\b((?:T|TIME)#[-\w.]+|\d+#[\w]+|\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\b|\b([A-Za-z_]\w*)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(code))) { out += esc(code.slice(last, m.index)); last = re.lastIndex; const t = m[0];
+    if (m[1]) out += `<i class="c">${esc(t)}</i>`; else if (m[2]) out += `<i class="g">${esc(t)}</i>`; else if (m[3]) out += `<i class="s">${esc(t)}</i>`;
+    else if (m[4]) out += `<i class="l">${esc(t)}</i>`; else if (m[5]) out += `<i class="n">${esc(t)}</i>`;
+    else { const u = t.toUpperCase(); out += KW.has(u) ? `<i class="k">${t}</i>` : KW2.has(u) || /_TO_/.test(u) ? `<i class="f">${t}</i>` : esc(t); } }
+  return out + esc(code.slice(last)) + '\n';
+}
+const SNIP = [['IF', 'IF  THEN\n   \nEND_IF;'], ['ELSIF', 'ELSIF  THEN\n   '], ['CASE', 'CASE  OF\n   1:\n      ;\n   ELSE\n      ;\nEND_CASE;'], ['FOR', 'FOR #i := 1 TO 10 DO\n   \nEND_FOR;'], ['WHILE', 'WHILE  DO\n   \nEND_WHILE;'], [':=', ' := '], [';', ';'], ['""', '""'], ['#', '#'], ['TON', '#Timer(IN := , PT := T#5s);'], ['AND', ' AND '], ['OR', ' OR '], ['NOT', 'NOT '], ['//', '// ']];
+function sclHtml(b) {
+  const errs = blockErrors(b).filter(m => m.line);
+  return `<div class="sclt">${SNIP.map(([l, s]) => `<button class="snip" ${A(() => insertSnip(s))}>${esc(l)}</button>`).join('')}</div>
+  <div class="scl" id="sclbox"><div class="gut" id="gut"></div><div class="code"><div class="errlay">${errs.map(m => `<div class="el ${m.lvl}" style="top:calc(${m.line - 1} * var(--lh) + 8px)" title="${esc(m.msg)}"></div>`).join('')}</div><pre id="hl"></pre><textarea id="ta" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SCL-Code"></textarea></div></div>
+  ${errs.length ? `<div class="errlist">${errs.map(m => `<div class="msg ${m.lvl}" ${A(() => gotoLine(m.line))}><span class="mi">${m.lvl === 'err' ? '✖' : '⚠'}</span><span class="mw">Zeile ${m.line}</span><span>${esc(m.msg)}${quickFix(m, b)}</span></div>`).join('')}</div>` : ''}`;
+}
+function gutter(code, b) { const n = code.split('\n').length; const el = new Set(blockErrors(b).filter(m => m.line).map(m => m.line)); let s = ''; for (let i = 1; i <= n; i++) s += `<div class="${el.has(i) ? 'e' : ''}">${i}</div>`; return s; }
+function afterBlockRender(b) {
+  if (!b) return;
+  if (b.lang === 'SCL' && b.type !== 'DB') {
+    const ta = $('#ta'), pre = $('#hl'), gut = $('#gut'); ta.value = b.scl || '';
+    const upd = () => { pre.innerHTML = hl(ta.value); gut.innerHTML = gutter(ta.value, b); };
+    upd();
+    ta.addEventListener('input', () => { b.scl = ta.value; upd(); ui.dirty = true; save(); renderTop(); });
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Tab') { e.preventDefault(); ta.setRangeText('   ', ta.selectionStart, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); }
+      else if (e.key === 'Enter') { const s = ta.selectionStart; const ls = ta.value.lastIndexOf('\n', s - 1) + 1; const line = ta.value.slice(ls, s); let ind = line.match(/^\s*/)[0];
+        if (/\b(THEN|DO|ELSE|OF|REPEAT)\s*$/i.test(line) || /^\s*\d+(\.\.\d+)?\s*:\s*$/.test(line)) ind += '   ';
+        e.preventDefault(); ta.setRangeText('\n' + ind, s, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); } });
+    if (ui.gotoLine) { const l = ui.gotoLine; ui.gotoLine = null; setTimeout(() => gotoLine(l), 30); }
+  }
+  if (ui.gotoNet != null) { const n = ui.gotoNet; ui.gotoNet = null; setTimeout(() => { const el = document.getElementById('net-' + n); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('flash'); } }, 30); }
+}
+function gotoLine(l) { const ta = $('#ta'); if (!ta) return; const lines = ta.value.split('\n'); let p = 0; for (let i = 0; i < l - 1 && i < lines.length; i++) p += lines[i].length + 1;
+  ta.focus({ preventScroll: true }); ta.setSelectionRange(p, p + (lines[l - 1] || '').length);
+  const box = $('#sclbox'); const lh = parseFloat(getComputedStyle(box).lineHeight) || 20; box.scrollTop = Math.max(0, (l - 4) * lh); }
+function insertSnip(s) { const ta = $('#ta'); if (!ta) return; ta.focus(); const st = ta.selectionStart; ta.setRangeText(s, st, ta.selectionEnd, 'end');
+  const ip = s.search(/ {2}THEN| {2}OF| {2}DO|""|:= ,/); if (ip >= 0) { const off = s.startsWith('""') ? 1 : s.indexOf(':= ,') >= 0 ? s.indexOf(':= ,') + 3 : ip + 1; ta.setSelectionRange(st + off, st + off); }
+  ta.dispatchEvent(new Event('input')); }
+function showGenScl(b) { const g = blockScl(b, reg()); modal(`<h3>${esc(b.name)} – erzeugter SCL-Code</h3><p class="hint">So wird der ${LANG_L[b.lang]}-Baustein übersetzt und ausgeführt.</p><pre class="srcpre">${hl(g.text)}</pre>`, [['Schließen', closeModal]]); }
+
+/* ---------- KOP (LAD) ---------- */
+const FIELDS = {
+  NO: [['op', 'Operand']], NC: [['op', 'Operand']], P: [['op', 'Operand'], ['mem', 'Flankenmerker']], N: [['op', 'Operand'], ['mem', 'Flankenmerker']],
+  CMP: [['a', 'IN1'], ['cmp', 'Vergleich'], ['b', 'IN2']], COIL: [['op', 'Operand']], NCOIL: [['op', 'Operand']], SET: [['op', 'Operand']], RST: [['op', 'Operand']],
+  TON: [['inst', 'Instanz'], ['pt', 'PT (Zeit)'], ['q', 'Q →'], ['et', 'ET →']], TOF: [['inst', 'Instanz'], ['pt', 'PT (Zeit)'], ['q', 'Q →'], ['et', 'ET →']], TP: [['inst', 'Instanz'], ['pt', 'PT (Zeit)'], ['q', 'Q →'], ['et', 'ET →']],
+  CTU: [['inst', 'Instanz'], ['r', 'R (Reset)'], ['pv', 'PV'], ['q', 'Q →'], ['cv', 'CV →']], CTD: [['inst', 'Instanz'], ['ld', 'LD (Laden)'], ['pv', 'PV'], ['q', 'Q →'], ['cv', 'CV →']],
+  MOVE: [['in', 'IN'], ['out', 'OUT1 →']], ADD: [['in1', 'IN1'], ['in2', 'IN2'], ['out', 'OUT →']], SUB: [['in1', 'IN1'], ['in2', 'IN2'], ['out', 'OUT →']], MUL: [['in1', 'IN1'], ['in2', 'IN2'], ['out', 'OUT →']], DIV: [['in1', 'IN1'], ['in2', 'IN2'], ['out', 'OUT →']],
+};
+const BOX_PIN = { TON: ['IN', 'Q'], TOF: ['IN', 'Q'], TP: ['IN', 'Q'], CTU: ['CU', 'Q'], CTD: ['CD', 'Q'], MOVE: ['EN', 'ENO'], ADD: ['EN', 'ENO'], SUB: ['EN', 'ENO'], MUL: ['EN', 'ENO'], DIV: ['EN', 'ENO'], CALL: ['EN', 'ENO'] };
+const IEC_OF = { TON: 'TON_TIME', TOF: 'TOF_TIME', TP: 'TP_TIME', CTU: 'CTU_INT', CTD: 'CTD_INT' };
+const LAD_TOOLS = [
+  ['Kontakte', [['NO', '┤ ├', 'Schließer'], ['NC', '┤/├', 'Öffner'], ['P', '┤P├', 'Positive Flanke'], ['N', '┤N├', 'Negative Flanke'], ['CMP', '┤==├', 'Vergleicher']]],
+  ['Spulen', [['COIL', '( )', 'Zuweisung'], ['NCOIL', '(/)', 'Negierte Zuweisung'], ['SET', '(S)', 'Setzen'], ['RST', '(R)', 'Rücksetzen']]],
+  ['Boxen', [['TON', 'TON', 'Einschaltverzögerung'], ['TOF', 'TOF', 'Ausschaltverzögerung'], ['TP', 'TP', 'Impuls'], ['CTU', 'CTU', 'Vorwärtszähler'], ['CTD', 'CTD', 'Rückwärtszähler'], ['MOVE', 'MOVE', 'Wert kopieren'], ['ADD', 'ADD', 'Addieren'], ['SUB', 'SUB', 'Subtrahieren'], ['MUL', 'MUL', 'Multiplizieren'], ['DIV', 'DIV', 'Dividieren'], ['CALL', 'FB/FC', 'Baustein aufrufen']]],
+  ['Verbinden', [['W', '───', 'Leitung'], ['LL', '┬ links', 'Abzweig links öffnen/schließen'], ['LR', '┬ rechts', 'Abzweig rechts öffnen/schließen'], ['DEL', '✕', 'Element löschen']]],
+];
+const W = 140, X0 = 14;
+function boxLines(el) { if (el.t === 'CALL') { const b = reg().blocks.get(String(el.blk || '').replace(/"/g, '').toLowerCase()); return b ? ifaceVars(b, ['Input', 'InOut', 'Output']).length : 0; } return (FIELDS[el.t] || []).filter(f => f[0] !== 'inst').length; }
+function isBox(t) { return !!BOX_PIN[t]; }
+function rowLayout(net) { const Y = [], RH = []; let y = 4; for (let r = 0; r < net.rows; r++) { let h = 74; for (let c = 0; c < net.cols; c++) { const el = net.cells[r + ',' + c]; if (el && isBox(el.t)) h = Math.max(h, 40 + 18 + boxLines(el) * 13 + 14); } Y.push(y); RH.push(h); y += h; } return { Y, RH, H: y + 4 }; }
+function ladSvg(b, net, ni, d) {
+  const { Y, RH, H: HH } = rowLayout(net), Wd = X0 + net.cols * W + 12, sc = esc(b.name.toLowerCase());
+  const ex = s => `data-eb="${esc(s ?? 'FALSE')}" data-sc="${sc}"`;
+  let g = `<line x1="${X0}" y1="0" x2="${X0}" y2="${HH}" class="rail on"/>`, hits = '', sel = '';
+  for (let r = 0; r < net.rows; r++) for (let c = 0; c < net.cols; c++) {
+    const x = X0 + c * W, y = Y[r], wy = y + 40, cx = x + W / 2, key = r + ',' + c, el = net.cells[key];
+    const isSel = ui.ladSel && ui.ladSel.b === b.name && ui.ladSel.ni === ni && ui.ladSel.r === r && ui.ladSel.c === c;
+    if (isSel) sel += `<rect x="${x + 2}" y="${y + 2}" width="${W - 4}" height="${RH[r] - 4}" rx="6" class="selr"/>`;
+    hits += `<rect x="${x}" y="${y}" width="${W}" height="${RH[r]}" class="hit" ${A(() => { ui.ladSel = { b: b.name, ni, r, c }; renderEditor(); })}/>`;
+    if (!el) { g += `<line x1="${x + 8}" y1="${wy}" x2="${x + W - 8}" y2="${wy}" class="ph"/>`; continue; }
+    const IN = ex(d.dIn[key]), OUT = ex(d.dOut[key]);
+    const txt = (s, yy, cls = 'opd') => `<text x="${cx}" y="${yy}" text-anchor="middle" class="${cls}">${esc(trunc(s, 18))}</text>`;
+    const seg = (x1, x2, a) => `<line x1="${x1}" y1="${wy}" x2="${x2}" y2="${wy}" class="w" ${a}/>`;
+    switch (el.t) {
+      case 'W': g += seg(x, x + W, OUT); break;
+      case 'NO': case 'NC': case 'P': case 'N': case 'CMP': {
+        const hw = el.t === 'CMP' ? 16 : 9;
+        g += seg(x, cx - hw, IN) + seg(cx + hw, x + W, OUT) + `<g class="sym" ${OUT}><line x1="${cx - hw}" y1="${wy - 12}" x2="${cx - hw}" y2="${wy + 12}"/><line x1="${cx + hw}" y1="${wy - 12}" x2="${cx + hw}" y2="${wy + 12}"/>${el.t === 'NC' ? `<line x1="${cx - 6}" y1="${wy + 10}" x2="${cx + 6}" y2="${wy - 10}"/>` : ''}</g>`;
+        if (el.t === 'P' || el.t === 'N') g += `<text x="${cx}" y="${wy + 4}" text-anchor="middle" class="sl">${el.t}</text>` + txt(el.mem || '???', wy + 28, 'opd s');
+        if (el.t === 'CMP') g += `<text x="${cx}" y="${wy + 4}" text-anchor="middle" class="sl">${esc(el.cmp || '==')}</text>` + txt(el.b || '???', wy + 28);
+        g += txt(el.t === 'CMP' ? (el.a || '???') : (el.op || '???'), wy - 18); break; }
+      case 'COIL': case 'NCOIL': case 'SET': case 'RST': {
+        g += seg(x, cx - 11, IN) + seg(cx + 11, x + W, IN) + `<g class="sym" ${IN}><path d="M${cx - 6} ${wy - 12} Q${cx - 13} ${wy} ${cx - 6} ${wy + 12}"/><path d="M${cx + 6} ${wy - 12} Q${cx + 13} ${wy} ${cx + 6} ${wy + 12}"/></g>`;
+        const l = { NCOIL: '/', SET: 'S', RST: 'R' }[el.t]; if (l) g += `<text x="${cx}" y="${wy + 4}" text-anchor="middle" class="sl">${l}</text>`;
+        g += txt(el.op || '???', wy - 18); break; }
+      default: {
+        const lines = el.t === 'CALL' ? (() => { const bb = reg().blocks.get(String(el.blk || '').replace(/"/g, '').toLowerCase()); return bb ? ifaceVars(bb, ['Input', 'InOut', 'Output']).map(v => [v.name, (el.params || {})[v.name] || '']) : []; })() : (FIELDS[el.t] || []).filter(f => f[0] !== 'inst').map(f => [f[1].replace(/ \(.*\)/, ''), el[f[0]] || '']);
+        const bx = x + 12, bw = W - 24, top = y + 26, bot = wy + 18 + lines.length * 13; const [pi, po] = BOX_PIN[el.t] || ['EN', 'ENO'];
+        g += seg(x, bx, IN) + seg(bx + bw, x + W, OUT) + `<rect x="${bx}" y="${top}" width="${bw}" height="${bot - top}" rx="3" class="box" ${OUT}/>`;
+        const title = el.t === 'CALL' ? (String(el.blk || 'FB/FC ?').replace(/"/g, '')) : el.t;
+        g += `<text x="${bx + bw / 2}" y="${top + 11}" text-anchor="middle" class="bt2">${esc(trunc(title, 16))}</text>`;
+        g += `<text x="${bx + 3}" y="${wy + 4}" class="pin">${pi}</text><text x="${bx + bw - 3}" y="${wy + 4}" text-anchor="end" class="pin">${po}</text>`;
+        lines.forEach(([k, v], i) => { g += `<text x="${bx + 3}" y="${wy + 20 + i * 13}" class="prm"><tspan class="pk">${esc(trunc(k, 8))}</tspan> ${esc(trunc(v, 19 - Math.min(k.length, 8)))}</text>`; });
+        if (el.inst) g += `<text x="${bx + bw / 2}" y="${y + 18}" text-anchor="middle" class="opd s">${esc(trunc(el.inst, 20))}</text>`;
+      }
+    }
+  }
+  for (const k of Object.keys(net.links)) { if (!net.links[k]) continue; const [r, bb] = k.split(',').map(Number); if (r + 1 >= net.rows) continue;
+    const x = X0 + bb * W; g += `<line x1="${x}" y1="${Y[r] + 40}" x2="${x}" y2="${Y[r + 1] + 40}" class="w lk" ${ex(d.dLink[k])}/>`; }
+  return `<svg class="lad" width="${Wd}" height="${HH}" viewBox="0 0 ${Wd} ${HH}">${sel}${g}${hits}</svg>`;
+}
+function netHead(b, ni, net, extra = '') {
+  const nets = b.networks; const errs = blockErrors(b).filter(m => m.net === ni);
+  return `<div class="neth"><b>Netzwerk ${ni + 1}:</b><input class="ntitle" value="${esc(net.title)}" placeholder="Titel" ${B(v => { net.title = v; save(); })}>${extra}
+    <span class="nacts"><button class="mini" ${A(() => { if (ni > 0) { [nets[ni - 1], nets[ni]] = [nets[ni], nets[ni - 1]]; touch(); } })} title="Nach oben">↑</button><button class="mini" ${A(() => { if (ni < nets.length - 1) { [nets[ni + 1], nets[ni]] = [nets[ni], nets[ni + 1]]; touch(); } })} title="Nach unten">↓</button><button class="mini" ${A(() => { nets.splice(ni + 1, 0, JSON.parse(JSON.stringify(net))); touch(); })} title="Duplizieren">⧉</button><button class="mini x" ${A(() => { nets.splice(ni, 1); ui.ladSel = null; ui.fbdSel = null; touch(); })} title="Netzwerk löschen">✕</button></span></div>
+    <input class="ncom" value="${esc(net.comment)}" placeholder="Kommentar" ${B(v => { net.comment = v; save(); })}>
+    ${errs.length ? `<div class="nerr">${errs.map(m => `<div class="${m.lvl}">${m.lvl === 'err' ? '✖' : '⚠'} ${esc(m.msg)}${quickFix(m, b)}</div>`).join('')}</div>` : ''}`;
+}
+function ladHtml(b) {
+  const r = reg(); let g; try { g = blockScl(b, r); } catch (e) { g = { disp: [] }; }
+  const tools = `<div class="tools">${LAD_TOOLS.map(([grp, its]) => `<div class="tg"><span>${grp}</span>${its.map(([t, l, title]) => `<button class="tl" title="${title}" ${A(() => ladPlace(b, t))}>${esc(l)}</button>`).join('')}</div>`).join('')}</div>`;
+  const nets = b.networks.map((net, ni) => {
+    const errs = blockErrors(b).some(m => m.net === ni && m.lvl === 'err');
+    const sel = ui.ladSel && ui.ladSel.b === b.name && ui.ladSel.ni === ni ? ui.ladSel : null;
+    return `<div class="net ${errs ? 'bad' : ''}" id="net-${ni}">${netHead(b, ni, net)}
+      <div class="ladw">${ladSvg(b, net, ni, g.disp[ni] || { dIn: {}, dOut: {}, dLink: {} })}</div>
+      <div class="nsize"><span>Zeilen ${net.rows}</span><button class="mini" ${A(() => { net.rows++; touch(); })}>＋</button><button class="mini" ${A(() => { if (net.rows > 1) { net.rows--; trimNet(net); touch(); } })}>−</button>
+      <span>Spalten ${net.cols}</span><button class="mini" ${A(() => { net.cols++; touch(); })}>＋</button><button class="mini" ${A(() => { if (net.cols > 1) { net.cols--; trimNet(net); touch(); } })}>−</button></div>
+      ${sel ? cellProps(b, net, sel) : ''}</div>`; }).join('');
+  return `${tools}<div class="hint small">Zelle antippen, dann Element aus der Leiste wählen. Abzweige verbinden die Zeile mit der darunterliegenden.</div>${nets}<button class="addnet" ${A(() => { b.networks.push({ title: '', comment: '', rows: 1, cols: 6, cells: {}, links: {} }); touch(); })}>＋ Netzwerk hinzufügen</button>`;
+}
+function trimNet(net) { for (const k of Object.keys(net.cells)) { const [r, c] = k.split(',').map(Number); if (r >= net.rows || c >= net.cols) delete net.cells[k]; }
+  for (const k of Object.keys(net.links)) { const [r, c] = k.split(',').map(Number); if (r >= net.rows - 1 || c > net.cols) delete net.links[k]; } }
+function autoInstance(b, iecOrFb) {
+  const isFb = !IEC[iecOrFb]; const base = isFb ? iecOrFb : (iecOrFb.startsWith('CT') ? 'IEC_Counter' : 'IEC_Timer');
+  if (b.type === 'FB') { const n = uniqName((isFb ? iecOrFb + '_Instance' : base) + '_', allVarNames(b)); b.iface.Static = b.iface.Static || []; b.iface.Static.push({ name: n, type: iecOrFb, init: '', comment: 'Multiinstanz' }); return '#' + n; }
+  const names = [...P.blocks.map(x => x.name), ...P.tags.map(t => t.name)]; let n = isFb ? iecOrFb + '_DB' : base + '_0_DB';
+  if (names.some(x => x.toLowerCase() === n.toLowerCase())) { let i = 1; const stem = isFb ? iecOrFb + '_DB_' : base + '_'; while (names.some(x => x.toLowerCase() === (isFb ? stem + i : stem + i + '_DB').toLowerCase())) i++; n = isFb ? stem + i : stem + i + '_DB'; }
+  P.blocks.push({ name: n, type: 'DB', number: nextNum('DB'), instanceOf: iecOrFb }); return '"' + n + '"';
+}
+function nextNum(type, start = 1) { const used = new Set(P.blocks.filter(b => b.type === type).map(b => b.number | 0)); let n = start; while (used.has(n)) n++; return n; }
+function ladPlace(b, t) {
+  const s = ui.ladSel; if (!s || s.b !== b.name) { toast('Zuerst eine Zelle im Netzwerk antippen', 'warn'); return; }
+  const net = b.networks[s.ni], key = s.r + ',' + s.c;
+  if (t === 'DEL') { delete net.cells[key]; return touch(); }
+  if (t === 'LL' || t === 'LR') { const bnd = t === 'LL' ? s.c : s.c + 1; if (bnd === 0) { toast('Links ist die Stromschiene – Abzweig rechts verwenden', 'warn'); return; }
+    if (s.r + 1 >= net.rows) net.rows++; const lk = s.r + ',' + bnd; if (net.links[lk]) delete net.links[lk]; else net.links[lk] = true; return touch(); }
+  const old = net.cells[key]; const el = { t };
+  if (old && ['NO', 'NC', 'COIL', 'NCOIL', 'SET', 'RST', 'P', 'N'].includes(old.t) && ['NO', 'NC', 'COIL', 'NCOIL', 'SET', 'RST', 'P', 'N'].includes(t)) { el.op = old.op; el.mem = old.mem; }
+  if (IEC_OF[t]) { el.inst = autoInstance(b, IEC_OF[t]); if (t.startsWith('T')) el.pt = 'T#5s'; else el.pv = '10'; }
+  if (t === 'CMP') { el.cmp = '=='; }
+  if (t === 'CALL') { el.blk = ''; el.params = {}; }
+  if (t === 'P' || t === 'N') el.mem = '';
+  net.cells[key] = el;
+  let c = s.c - 1; while (c >= 0 && !net.cells[s.r + ',' + c] && !net.links[s.r + ',' + (c + 1)] && !(s.r > 0 && net.links[(s.r - 1) + ',' + (c + 1)])) c--;
+  const leftEnd = c; if (leftEnd >= 0 || s.r === 0) for (let k = leftEnd + 1; k < s.c; k++) net.cells[s.r + ',' + k] = { t: 'W' };
+  touch(); setTimeout(() => { const f = document.querySelector('.props input:not([disabled])'); if (f && !['W'].includes(t) && window.innerWidth > 820) f.focus(); }, 20);
+}
+function fieldInput(el, k, label, b) {
+  if (k === 'cmp') return `<label>${label}<select ${B(v => { el.cmp = v; touch(); })}>${Object.keys(CMP_SCL).map(o => `<option ${el.cmp === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
+  return `<label>${label}<input class="mono" list="oplist" value="${esc(el[k])}" ${B(v => { el[k] = v.trim(); touch(); })} placeholder="${k === 'pt' ? 'T#5s' : k === 'pv' ? '10' : '"Operand"'}"></label>`;
+}
+function instHelper(b, el, type) {
+  const v = String(el.inst || '').trim(); if (!v) return ''; const r = reg();
+  const exists = v.startsWith('#') ? allVarNames(b).some(n => n.toLowerCase() === v.slice(1).toLowerCase()) : r.blocks.has(v.replace(/"/g, '').toLowerCase());
+  if (exists) return '';
+  return `<button class="mini" ${A(() => { if (v.startsWith('#')) { if (b.type !== 'FB') { toast('Multiinstanzen (#…) nur in FBs möglich', 'warn'); return; } (b.iface.Static = b.iface.Static || []).push({ name: v.slice(1), type, init: '', comment: '' }); } else P.blocks.push({ name: v.replace(/"/g, ''), type: 'DB', number: nextNum('DB'), instanceOf: type }); touch({ nav: true }); })}>Instanz „${esc(v)}“ anlegen</button>`;
+}
+function elFields(b, el) {
+  if (el.t === 'W') return '<div class="hint small">Leitung – verbindet links und rechts.</div>';
+  if (el.t === 'CALL') {
+    const r = reg(); const callables = P.blocks.filter(x => x.type === 'FB' || x.type === 'FC'); const bb = r.blocks.get(String(el.blk || '').replace(/"/g, '').toLowerCase());
+    return `<label>Baustein<select ${B(v => { el.blk = v; el.params = {}; const nb = reg().blocks.get(v.toLowerCase()); if (nb && nb.type === 'FB') el.inst = autoInstance(b, nb.name); else delete el.inst; touch({ nav: true }); })}><option value="">– wählen –</option>${callables.map(x => `<option ${x.name === bb?.name ? 'selected' : ''} value="${esc(x.name)}">${x.type} ${esc(x.name)}</option>`).join('')}</select></label>
+      ${bb && bb.type === 'FB' ? fieldInput(el, 'inst', 'Instanz', b) + instHelper(b, el, bb.name) : ''}
+      ${bb ? ['Input', 'InOut', 'Output'].map(s => (bb.iface[s] || []).map(v => `<label>${esc(v.name)} <small>${s === 'Output' ? '→ ' : ''}${esc(v.type)}</small><input class="mono" list="oplist" value="${esc((el.params || {})[v.name])}" ${B(x => { el.params = el.params || {}; el.params[v.name] = x.trim(); touch(); })}></label>`).join('')).join('') : ''}`;
+  }
+  return (FIELDS[el.t] || []).map(([k, l]) => fieldInput(el, k, l, b) + (k === 'inst' ? instHelper(b, el, IEC_OF[el.t]) : '')).join('');
+}
+function cellProps(b, net, s) {
+  const el = net.cells[s.r + ',' + s.c];
+  return `<div class="props"><div class="ph2">Zeile ${s.r + 1}, Spalte ${s.c + 1}${el ? ' · ' + (elLabel(el.t) === el.t ? (LAD_TOOLS.flatMap(g => g[1]).find(x => x[0] === el.t) || [, , el.t])[2] : elLabel(el.t)) : ''}</div>
+    ${el ? `<div class="pf">${elFields(b, el)}</div>` : '<div class="hint small">Leere Zelle – Element aus der Werkzeugleiste wählen.</div>'}</div>`;
+}
+
+/* ---------- FUP (FBD) ---------- */
+const ROOT_T = [['ASSIGN', '= Zuweisung'], ['NCOIL', '/= Neg. Zuweisung'], ['SET', 'S Setzen'], ['RST', 'R Rücksetzen'], ['TON', 'TON'], ['TOF', 'TOF'], ['TP', 'TP'], ['CTU', 'CTU'], ['CTD', 'CTD'], ['MOVE', 'MOVE'], ['ADD', 'ADD'], ['SUB', 'SUB'], ['MUL', 'MUL'], ['DIV', 'DIV'], ['CALL', 'FB/FC-Aufruf']];
+const GSYM = { AND: '&amp;', OR: '&gt;=1', XOR: 'X' };
+function fbdInput(net, path) { let inp = net.root.in; for (const k of path) inp = inp.n.ins[k]; return inp; }
+function fbdHtml(b) {
+  const r = reg(); let g; try { g = blockScl(b, r); } catch (e) { g = { disp: [] }; }
+  const sc = esc(b.name.toLowerCase());
+  const tools = `<div class="tools"><div class="tg"><span>Logik</span><button class="tl" ${A(() => fbdAct(b, 'AND'))} title="UND-Box">&amp;</button><button class="tl" ${A(() => fbdAct(b, 'OR'))} title="ODER-Box">&gt;=1</button><button class="tl" ${A(() => fbdAct(b, 'XOR'))} title="Exklusiv-ODER">X</button><button class="tl" ${A(() => fbdAct(b, 'CMP'))} title="Vergleicher">CMP</button></div>
+    <div class="tg"><span>Eingang</span><button class="tl" ${A(() => fbdAct(b, 'ADD'))}>＋ Eingang</button><button class="tl" ${A(() => fbdAct(b, 'NEG'))}>○ Negieren</button><button class="tl" ${A(() => fbdAct(b, 'DEL'))}>✕ Entfernen</button></div></div>`;
+  const nets = b.networks.map((net, ni) => {
+    net.root = net.root || { t: 'ASSIGN', op: '', in: { neg: false, n: { t: 'OP', op: '' } } };
+    const d = g.disp[ni] || new Map(); const errs = blockErrors(b).some(m => m.net === ni && m.lvl === 'err');
+    const isSel = path => ui.fbdSel && ui.fbdSel.b === b.name && ui.fbdSel.ni === ni && ui.fbdSel.path.join() === path.join();
+    const pick = path => A(() => { ui.fbdSel = { b: b.name, ni, path }; renderEditor(); });
+    const ev = x => `data-eb="${esc(x ?? 'FALSE')}" data-sc="${sc}"`;
+    const node = (n, path) => {
+      if (n.t === 'OP') return `<input class="fop mono" list="oplist" value="${esc(n.op)}" placeholder="??" ${B(v => { n.op = v.trim(); touch(); })}>`;
+      if (n.t === 'CMP') return `<div class="fcmp ${isSel(path) ? 'sel' : ''}"><div class="fcmpin"><input class="fop mono" list="oplist" value="${esc(n.a)}" placeholder="IN1" ${B(v => { n.a = v.trim(); touch(); })}><input class="fop mono" list="oplist" value="${esc(n.b)}" placeholder="IN2" ${B(v => { n.b = v.trim(); touch(); })}></div><div class="fbx" ${pick(path)} ${ev(d.get(n))}><b>CMP</b><select ${B(v => { n.cmp = v; touch(); })}>${Object.keys(CMP_SCL).map(o => `<option ${n.cmp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div></div>`;
+      return `<div class="fgate"><div class="fins">${n.ins.map((i, k) => pin(i, [...path, k])).join('')}</div><div class="fbx ${isSel(path) ? 'sel' : ''}" ${pick(path)} ${ev(d.get(n))}><b>${GSYM[n.t]}</b></div></div>`;
+    };
+    const pin = (inp, path) => `<div class="fpin"><div class="fsrc">${node(inp.n, path)}</div><div class="fw ${inp.neg ? 'neg' : ''} ${isSel(path) ? 'sel' : ''}" ${pick(path)} ${ev(d.get(inp))}><i></i></div></div>`;
+    const root = net.root, rt = root.t;
+    const el = rt === 'ASSIGN' ? { ...root, t: 'COIL' } : root;
+    let rb;
+    if (['ASSIGN', 'NCOIL', 'SET', 'RST'].includes(rt)) rb = `<div class="froot"><input class="fop mono top" list="oplist" value="${esc(root.op)}" placeholder="Operand" ${B(v => { root.op = v.trim(); touch(); })}><div class="fbx rootb" ${ev(d.get(root.in))}><b>${{ ASSIGN: '=', NCOIL: '/=', SET: 'S', RST: 'R' }[rt]}</b></div></div>`;
+    else rb = `<div class="froot"><div class="fbx rootb wide" ${ev(d.get(root.in))}><b>${rt === 'CALL' ? esc(root.blk || 'FB/FC') : rt}</b><div class="pf">${elFields(b, root)}</div></div></div>`;
+    return `<div class="net ${errs ? 'bad' : ''}" id="net-${ni}">${netHead(b, ni, net, `<select class="rsel" ${B(v => { const keep = root.in; net.root = { t: v, in: keep }; if (IEC_OF[v]) { net.root.inst = autoInstance(b, IEC_OF[v]); if (v.startsWith('T')) net.root.pt = 'T#5s'; else net.root.pv = '10'; } if (v === 'CALL') net.root.params = {}; if (['ASSIGN', 'NCOIL', 'SET', 'RST'].includes(v)) net.root.op = root.op || ''; touch({ nav: true }); })}>${ROOT_T.map(([v, l]) => `<option value="${v}" ${v === rt ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}
+      <div class="fbdw"><div class="fbd">${pin(root.in, [])}${rb}</div></div></div>`; }).join('');
+  return `${tools}<div class="hint small">Eingang (Linie rechts neben dem Operanden) oder Box antippen, dann Werkzeug wählen.</div>${nets}<button class="addnet" ${A(() => { b.networks.push({ title: '', comment: '', root: { t: 'ASSIGN', op: '', in: { neg: false, n: { t: 'OP', op: '' } } } }); touch(); })}>＋ Netzwerk hinzufügen</button>`;
+}
+function fbdAct(b, act) {
+  const s = ui.fbdSel; if (!s || s.b !== b.name) { toast('Zuerst einen Eingang oder eine Box antippen', 'warn'); return; }
+  const net = b.networks[s.ni]; const inp = fbdInput(net, s.path); const leaf = () => ({ neg: false, n: { t: 'OP', op: '' } });
+  const parentPath = s.path.slice(0, -1), idx = s.path[s.path.length - 1]; const parent = s.path.length ? fbdInput(net, parentPath) : null;
+  if (act === 'AND' || act === 'OR' || act === 'XOR') { if (inp.n.t === act) inp.n.ins.push(leaf()); else if (['AND', 'OR', 'XOR'].includes(inp.n.t) && !inp.n._wrap) inp.n.t = act; else { inp.n = { t: act, ins: [{ neg: inp.neg, n: inp.n }, leaf()] }; inp.neg = false; } }
+  else if (act === 'CMP') inp.n = { t: 'CMP', cmp: '>', a: inp.n.t === 'OP' ? inp.n.op : '', b: '' };
+  else if (act === 'NEG') inp.neg = !inp.neg;
+  else if (act === 'ADD') { if (['AND', 'OR', 'XOR'].includes(inp.n.t)) inp.n.ins.push(leaf()); else if (parent) parent.n.ins.splice(idx + 1, 0, leaf()); else { inp.n = { t: 'AND', ins: [{ neg: inp.neg, n: inp.n }, leaf()] }; inp.neg = false; } }
+  else if (act === 'DEL') { if (parent && parent.n.ins.length > 2) { parent.n.ins.splice(idx, 1); ui.fbdSel = { ...s, path: parentPath }; }
+    else if (parent) { const sib = parent.n.ins[1 - idx]; parent.n = sib.n; parent.neg = parent.neg !== sib.neg; ui.fbdSel = { ...s, path: parentPath }; }
+    else { inp.n = { t: 'OP', op: '' }; inp.neg = false; } }
+  touch();
+}
+
+/* ===================== Beobachtung & Simulation ===================== */
+function watchView() {
+  P.watch = P.watch || [];
+  const din = P.tags.filter(t => normType(t.type) === 'Bool' && /^%I/i.test(t.addr || ''));
+  const ain = P.tags.filter(t => normType(t.type) !== 'Bool' && /^%I/i.test(t.addr || ''));
+  const dout = P.tags.filter(t => normType(t.type) === 'Bool' && /^%Q/i.test(t.addr || ''));
+  const rows = P.watch.map((w, i) => `<tr><td><input class="mono" list="oplist" value="${esc(w.expr)}" ${B(v => { w.expr = v.trim(); save(); renderEditor(); })}></td>
+    <td class="live mono" data-ev="${esc(w.expr)}"></td>
+    <td><input class="mono" value="${esc(w.ctrl)}" placeholder="TRUE / 42 / T#2s" ${B(v => { w.ctrl = v.trim(); save(); })}></td>
+    <td><button class="mini" ${A(() => writeExpr(w.expr, w.ctrl))}>Steuern</button></td>
+    <td><button class="x" ${A(() => { P.watch.splice(i, 1); save(); renderEditor(); })}>✕</button></td></tr>`).join('');
+  return `<div class="edh"><div><h2>Beobachtung &amp; Simulation</h2><div class="sub">Eingänge der simulierten CPU betätigen, Ausgänge und Variablen beobachten, Werte steuern.</div></div></div>
+  ${!plc.prog ? `<div class="banner">Noch kein Programm in der CPU. <button class="pri" ${A(doRun)}>⇩ Laden &amp; RUN</button></div>` : ''}
+  <div class="panel"><div class="ph2">Digitale Eingänge <label class="sw"><input type="checkbox" ${ui.tast ? 'checked' : ''} ${B(v => { ui.tast = v; renderEditor(); })}> Taster-Modus (gedrückt halten)</label></div>
+    <div class="chips">${din.map(t => `<button class="chip" data-eb="&quot;${esc(t.name)}&quot;" ${ui.tast ? `data-tast="${esc(t.name)}"` : A(() => writeTag(t.name, !plc.G[t.name]))}><b>${esc(t.name)}</b><small>${esc(t.addr)}</small></button>`).join('') || '<span class="hint small">Keine Bool-Variablen mit %I-Adresse.</span>'}</div>
+    ${ain.length ? `<div class="ph2">Analoge Eingänge</div>${ain.map(t => `<div class="ana"><b>${esc(t.name)}</b><small>${esc(t.addr)}</small><input type="range" min="0" max="${normType(t.type) === 'Real' ? 100 : 27648}" value="${plc.G[t.name] || 0}" data-ana="${esc(t.name)}"><span class="mono live" data-ev="&quot;${esc(t.name)}&quot;"></span></div>`).join('')}` : ''}
+    <div class="ph2">Digitale Ausgänge</div><div class="chips">${dout.map(t => `<div class="chip out" data-eb="&quot;${esc(t.name)}&quot;"><b>${esc(t.name)}</b><small>${esc(t.addr)}</small></div>`).join('') || '<span class="hint small">Keine Bool-Variablen mit %Q-Adresse.</span>'}</div></div>
+  <div class="panel"><div class="ph2">Beobachtungstabelle <span class="sp"></span><button class="mini" ${A(() => { P.watch.push({ expr: '', ctrl: '' }); save(); renderEditor(); })}>＋ Zeile</button><button class="mini" ${A(() => { let n = 0; for (const w of P.watch) if (w.ctrl && writeExpr(w.expr, w.ctrl)) n++; if (n) toast(n + ' Werte gesteuert', 'ok'); })}>Alle steuern</button></div>
+  <div class="tw"><table class="grid"><thead><tr><th>Operand</th><th class="live">Beobachtungswert</th><th>Steuerwert</th><th></th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function diagView() {
+  return `<div class="edh"><div><h2>Online &amp; Diagnose</h2><div class="sub">Simulierte CPU · ${esc(P.cpu || '')}</div></div></div>
+  <div class="panel cpup"><div class="cpubig ${plc.state}"><span class="led"></span>${plc.state}</div>
+    <div class="cpub"><button class="run" ${A(doRun)}>▶ RUN</button><button class="stop" ${A(doStop)}>■ STOP</button><button ${A(() => { plc.memReset(P); renderEditor(); toast('Urlöschen durchgeführt', 'ok'); })}>MRES Urlöschen</button></div>
+    <table class="kv"><tr><td>Zykluszeit aktuell</td><td class="mono" data-cyc="last"></td></tr><tr><td>Zykluszeit min.</td><td class="mono" data-cyc="min"></td></tr><tr><td>Zykluszeit max.</td><td class="mono" data-cyc="max"></td></tr>
+    <tr><td>CPU-Typ</td><td><input value="${esc(P.cpu)}" ${B(v => { P.cpu = v; save(); renderNav(); })}></td></tr></table></div>
+  <div class="panel"><div class="ph2">Diagnosepuffer</div><div class="tw"><table class="grid"><thead><tr><th>Zeit</th><th>Ereignis</th></tr></thead><tbody>${plc.diag.map(d => `<tr class="${d.lvl}"><td class="mono">${d.t.toLocaleTimeString('de-DE')}</td><td>${esc(d.msg)}</td></tr>`).join('') || '<tr><td colspan="2" class="hint">Keine Einträge</td></tr>'}</tbody></table></div></div>`;
+}
+function srcView() {
+  let src = ''; try { src = genSource(P); } catch (e) { src = '// Fehler beim Erzeugen: ' + e.message; }
+  return `<div class="edh"><div><h2>Externe Quellen &amp; Projektdatei</h2><div class="sub">Austausch mit dem TIA Portal über SCL-Quellen (.scl) und Sicherung des ganzen Projekts (.json).</div></div></div>
+  <div class="panel"><div class="ph2">Alle Bausteine als externe Quelle <span class="sp"></span>${DESK ? `<button class="mini" ${A(exportSrcFile)}>Als .scl-Datei speichern…</button>` : ''}<button class="mini" ${A(() => copyText(src))}>Kopieren</button></div>
+    <p class="hint small">Im TIA Portal: Projektnavigation → Externe Quellen → Neue externe Datei hinzufügen → .scl-Datei mit diesem Inhalt → „Bausteine aus Quelle generieren“. Die PLC-Variablen müssen dort mit gleichem Namen existieren. KOP/FUP-Bausteine werden als SCL exportiert.</p>
+    <pre class="srcpre">${hl(src)}</pre></div>
+  <div class="panel"><div class="ph2">Externe Quelle importieren${DESK ? `<span class="sp"></span><button class="mini" ${A(importSrcFileDesk)}>.scl-Datei öffnen…</button>` : ''}</div>
+    <p class="hint small">SCL-Quelltext einfügen oder .scl-Datei wählen. Bausteine mit gleichem Namen werden ersetzt.</p>
+    <input type="file" accept=".scl,.txt,.awl" id="srcfile"><textarea id="srcin" class="mono imp" placeholder="FUNCTION_BLOCK &quot;FB_Beispiel&quot; …"></textarea>
+    <button class="pri" ${A(importSrc)}>Bausteine aus Quelle generieren</button></div>
+  <div class="panel"><div class="ph2">Projektdatei (.json) <span class="sp"></span>${DESK ? `<button class="mini" ${A(() => fileSave(false))}>Speichern</button><button class="mini" ${A(() => fileSave(true))}>Speichern unter…</button><button class="mini" ${A(() => guardDirty(() => fileOpen()))}>Öffnen…</button>` : ''}<button class="mini" ${A(() => copyText(JSON.stringify(P, null, 1)))}>Projekt kopieren</button></div>
+    <p class="hint small">Das Projekt wird automatisch in diesem Browser gespeichert. Zum Sichern oder Übertragen den JSON-Text kopieren; zum Laden Datei wählen oder Text einfügen.</p>
+    <input type="file" accept=".json" id="jsonfile"><textarea id="jsonin" class="mono imp" placeholder="{ &quot;name&quot;: … }"></textarea>
+    <div class="row"><button class="pri" ${A(importJson)}>Projekt öffnen</button><button ${A(() => confirmDlg('Beispielprojekt „Pumpstation“ laden? Das aktuelle Projekt wird ersetzt.', () => setProject(exampleProject())))}>Beispielprojekt laden</button><button class="danger" ${A(() => confirmDlg('Neues leeres Projekt anlegen? Das aktuelle Projekt wird ersetzt.', () => setProject(emptyProject())))}>Neues leeres Projekt</button></div></div>`;
+}
+function emptyProject() { return { name: 'Neues Projekt', cpu: 'CPU 1516-3 PN/DP (Simulation)', version: 1, tags: [], blocks: [{ name: 'Main', type: 'OB', number: 1, lang: 'LAD', iface: { Temp: [] }, networks: [{ title: '', comment: '', rows: 1, cols: 6, cells: {}, links: {} }] }], watch: [] }; }
+function setProject(np) { if (plc.state === 'RUN') plc.stop('Projektwechsel'); P = np; prog = null; plc.prog = null; ui.msgs = []; ui.dirty = true; evalCache.clear(); save(); select('block', (P.blocks[0] || {}).name); }
+async function readFileInput(id) { const f = $(id).files[0]; return f ? await f.text() : null; }
+async function importSrc() { importSrcText((await readFileInput('#srcfile')) || $('#srcin').value); }
+function importSrcText(txt) {
+  if (!txt || !txt.trim()) { toast('Keine Quelle angegeben', 'warn'); return; }
+  let bl; try { bl = parseSource(txt); } catch (e) { toast('Quelle nicht lesbar: ' + e.message, 'err'); return; }
+  if (!bl.length) { toast('Keine Bausteine in der Quelle gefunden', 'err'); return; }
+  for (const b of bl) { const i = P.blocks.findIndex(x => x.name.toLowerCase() === b.name.toLowerCase());
+    if (i >= 0) b.number = P.blocks[i].number; else b.number = b.type === 'OB' ? (/startup/i.test(b.name) ? 100 : nextNum('OB', 1)) : nextNum(b.type);
+    if (b.type !== 'DB') for (const s of SECTIONS[b.type]) b.iface[s] = b.iface[s] || [];
+    if (i >= 0) P.blocks[i] = b; else P.blocks.push(b); }
+  toast(bl.length + ' Baustein(e) importiert', 'ok'); touch({ nav: true }); select('block', bl[0].name);
+}
+async function importJson() {
+  const txt = (await readFileInput('#jsonfile')) || $('#jsonin').value; let np;
+  try { np = JSON.parse(txt); if (!Array.isArray(np.tags) || !Array.isArray(np.blocks)) throw new Error('Kein gültiges Projekt'); } catch (e) { toast('Projektdatei ungültig: ' + e.message, 'err'); return; }
+  setProject(np); toast('Projekt geöffnet', 'ok');
+}
+function copyText(t) { try { navigator.clipboard.writeText(t).then(() => toast('In die Zwischenablage kopiert', 'ok'), () => toast('Kopieren nicht erlaubt – Text markieren und manuell kopieren', 'warn')); } catch (e) { toast('Kopieren nicht möglich', 'warn'); } }
+
+/* ===================== Dialoge ===================== */
+function modal(html, buttons) { const m = $('#modal'); m.innerHTML = `<div class="mbox">${html}<div class="mbtn">${buttons.map(([l, fn, cls]) => `<button class="${cls || ''}" ${A(fn)}>${l}</button>`).join('')}</div></div>`; m.className = 'on'; const f = m.querySelector('input'); if (f) setTimeout(() => f.focus(), 30); }
+function closeModal() { $('#modal').className = ''; $('#modal').innerHTML = ''; }
+function confirmDlg(text, fn) { modal(`<h3>Bestätigen</h3><p>${esc(text)}</p>`, [['Abbrechen', closeModal], ['OK', () => { closeModal(); fn(); }, 'pri']]); }
+function addBlockDlg() {
+  ui.navOpen = false; renderNav();
+  const fbs = P.blocks.filter(b => b.type === 'FB').map(b => b.name);
+  modal(`<h3>Neuen Baustein hinzufügen</h3>
+   <div class="seg" id="nbType">${[['OB', 'Organisationsbaustein'], ['FB', 'Funktionsbaustein'], ['FC', 'Funktion'], ['DB', 'Datenbaustein']].map(([t, l], i) => `<label><input type="radio" name="nbt" value="${t}" ${t === 'FB' ? 'checked' : ''}><span><b>${t}</b>${l}</span></label>`).join('')}</div>
+   <label class="fl">Name<input id="nbName" class="mono" value="${uniqName('Baustein_', P.blocks.map(b => b.name))}"></label>
+   <label class="fl" id="nbLangL">Sprache<select id="nbLang"><option value="LAD">KOP (Kontaktplan)</option><option value="FBD">FUP (Funktionsplan)</option><option value="SCL" selected>SCL (Structured Control Language)</option></select></label>
+   <label class="fl" id="nbInstL">DB-Typ<select id="nbInst"><option value="">Global-DB</option>${[...fbs, ...IEC_NAMES].map(t => `<option value="${esc(t)}">Instanz-DB von ${esc(t)}</option>`).join('')}</select></label>
+   <label class="fl">Nummer<input id="nbNum" type="number" min="1" placeholder="automatisch"></label>`, [['Abbrechen', closeModal], ['OK', createBlock, 'pri']]);
+  const upd = () => { const t = document.querySelector('input[name=nbt]:checked').value; $('#nbLangL').style.display = t === 'DB' ? 'none' : ''; $('#nbInstL').style.display = t === 'DB' ? '' : 'none'; };
+  document.querySelectorAll('input[name=nbt]').forEach(r => r.addEventListener('change', upd)); upd();
+}
+function createBlock() {
+  const t = document.querySelector('input[name=nbt]:checked').value, name = $('#nbName').value.trim(), lang = $('#nbLang').value, inst = $('#nbInst').value; let num = parseInt($('#nbNum').value, 10);
+  if (!/^[A-Za-z_][\w]*$/.test(name)) { toast('Name: nur Buchstaben, Ziffern, _ (nicht mit Ziffer beginnen)', 'err'); return; }
+  if ([...P.blocks.map(b => b.name), ...P.tags.map(t => t.name)].some(n => n.toLowerCase() === name.toLowerCase())) { toast('Name ist bereits vergeben', 'err'); return; }
+  if (!num) num = t === 'OB' ? (P.blocks.some(b => b.type === 'OB' && (b.number | 0) === 1) ? nextNum('OB', 123) : 1) : nextNum(t);
+  else if (P.blocks.some(b => b.type === t && (b.number | 0) === num)) { toast(`${t}${num} existiert bereits`, 'err'); return; }
+  const b = { name, type: t, number: num };
+  if (t === 'DB') { if (inst) b.instanceOf = inst; else b.iface = { Static: [] }; }
+  else { b.lang = lang; b.iface = {}; for (const s of SECTIONS[t]) b.iface[s] = [];
+    if (lang === 'SCL') b.scl = t === 'OB' ? '// Zyklisches Programm\n' : '// ' + name + '\n';
+    else if (lang === 'LAD') b.networks = [{ title: '', comment: '', rows: 1, cols: 6, cells: {}, links: {} }];
+    else b.networks = [{ title: '', comment: '', root: { t: 'ASSIGN', op: '', in: { neg: false, n: { t: 'OP', op: '' } } } }]; }
+  P.blocks.push(b); closeModal(); touch({ nav: true }); select('block', name);
+}
+function propsDlg(b) {
+  modal(`<h3>Eigenschaften ${b.type} „${esc(b.name)}“</h3><label class="fl">Name<input id="pName" class="mono" value="${esc(b.name)}"></label><label class="fl">Nummer<input id="pNum" type="number" min="1" value="${b.number ?? ''}"></label>
+    ${b.type === 'OB' ? '<p class="hint small">OB1 und OB ≥ 123 laufen zyklisch, OB100 einmal beim Anlauf (STOP → RUN).</p>' : ''}
+    ${b.type !== 'DB' ? `<p class="hint small">Sprache: ${LANG_L[b.lang]}${b.lang !== 'SCL' ? ` · <a href="#" ${A((el, e) => { e.preventDefault(); const g = blockScl(b, reg()); b.lang = 'SCL'; b.scl = g.text; if (g.temps.length) b.iface.Temp.push(...g.temps.map(t => ({ name: t.name, type: 'Bool', init: '', comment: 'aus KOP' }))); delete b.networks; closeModal(); touch({ nav: true }); })}>In SCL umwandeln</a>` : ''}</p>` : ''}`,
+    [['Abbrechen', closeModal], ['OK', () => { const n = $('#pName').value.trim(), num = parseInt($('#pNum').value, 10);
+      if (!/^[A-Za-z_][\w]*$/.test(n)) { toast('Ungültiger Name', 'err'); return; }
+      if (n.toLowerCase() !== b.name.toLowerCase() && [...P.blocks.map(x => x.name), ...P.tags.map(t => t.name)].some(x => x.toLowerCase() === n.toLowerCase())) { toast('Name ist bereits vergeben', 'err'); return; }
+      if (num && P.blocks.some(x => x !== b && x.type === b.type && (x.number | 0) === num)) { toast(`${b.type}${num} existiert bereits`, 'err'); return; }
+      const old = b.name; b.name = n; if (num) b.number = num; renameRefs(old, n); closeModal(); ui.sel.name = n; touch({ nav: true }); }, 'pri']]);
+}
+function delBlockDlg(b) { confirmDlg(`Baustein „${b.name}“ löschen?`, () => { P.blocks.splice(P.blocks.indexOf(b), 1); touch({ nav: true }); select('tags'); }); }
+
+
+/* ===================== Desktop-Integration (Electron) ===================== */
+var DESK = typeof window !== 'undefined' && window.desktop ? window.desktop : null;
+var filePath = null, fileDirty = false;
+const PROJ_FILTER = [{ name: 'SPS-Werkbank-Projekt', extensions: ['spsw', 'json'] }];
+function setFileDirty(d) { fileDirty = d; if (DESK) { DESK.setDirty(d); updateTitle(); } }
+function updateTitle() { if (DESK) DESK.setTitle(`${fileDirty ? '● ' : ''}${filePath ? filePath.split(/[\\/]/).pop() : P.name} – SPS-Werkbank`); }
+function rememberPath() { try { if (filePath) localStorage.setItem(LS_KEY + '-pfad', filePath); else localStorage.removeItem(LS_KEY + '-pfad'); } catch (e) {} }
+function guardDirty(fn) {
+  if (!fileDirty) return fn();
+  modal('<h3>Ungespeicherte Änderungen</h3><p>Möchtest du die Änderungen am Projekt „' + esc(P.name) + '“ speichern?</p>',
+    [['Abbrechen', closeModal], ['Nicht speichern', () => { closeModal(); fn(); }, 'danger'], ['Speichern', async () => { closeModal(); if (await fileSave(false)) fn(); }, 'pri']]);
+}
+async function fileOpen(path) {
+  const r = await DESK.openFile({ title: 'Projekt öffnen', filters: PROJ_FILTER, path }); if (!r) return;
+  let np; try { np = JSON.parse(r.content); if (!Array.isArray(np.tags) || !Array.isArray(np.blocks)) throw new Error('kein SPS-Werkbank-Projekt'); }
+  catch (e) { toast('Datei ungültig: ' + e.message, 'err'); return; }
+  setProject(np); filePath = r.path; rememberPath(); setFileDirty(false); toast('Geöffnet: ' + r.path, 'ok');
+}
+async function fileSave(as) {
+  const r = await DESK.saveFile({ title: 'Projekt speichern', content: JSON.stringify(P, null, 1), path: as ? null : filePath, defaultName: (P.name || 'Projekt').replace(/[\\/:*?"<>|]/g, '_') + '.spsw', filters: PROJ_FILTER });
+  if (!r) return false; filePath = r.path; rememberPath(); setFileDirty(false); toast('Gespeichert: ' + r.path, 'ok'); return true;
+}
+function fileNew() { guardDirty(() => { setProject(emptyProject()); filePath = null; rememberPath(); setFileDirty(false); }); }
+async function exportSrcFile() {
+  let src; try { src = genSource(P); } catch (e) { toast('Quelle konnte nicht erzeugt werden: ' + e.message, 'err'); return; }
+  const r = await DESK.saveFile({ title: 'Externe Quelle exportieren', content: src, defaultName: (P.name || 'Projekt').replace(/[\\/:*?"<>|]/g, '_') + '.scl', filters: [{ name: 'SCL-Quelle', extensions: ['scl'] }] });
+  if (r) toast('Quelle gespeichert: ' + r.path, 'ok');
+}
+async function importSrcFileDesk() { const r = await DESK.openFile({ title: 'Externe Quelle importieren', filters: [{ name: 'SCL-Quelle', extensions: ['scl', 'txt'] }] }); if (r) importSrcText(r.content); }
+async function aboutDlg() { const i = DESK ? await DESK.appInfo() : {}; modal(`<h3>SPS-Werkbank</h3><p>Version ${esc(i.version || '1.0.0')} · ${esc(i.platform || '')}</p><p class="hint small">Programmierumgebung für KOP, FUP und SCL mit simulierter CPU. Austausch mit dem TIA Portal über externe SCL-Quellen. Kein Produkt der Siemens AG.</p>`, [['OK', closeModal, 'pri']]); }
+if (DESK) {
+  document.body.classList.add('desktop');
+  try { filePath = localStorage.getItem(LS_KEY + '-pfad'); } catch (e) {}
+  DESK.onMenu(cmd => {
+    const go = { new: fileNew, open: () => guardDirty(() => fileOpen()), save: () => fileSave(false), saveAs: () => fileSave(true),
+      exportScl: exportSrcFile, importScl: importSrcFileDesk, compile: () => doCompile(), load: doLoad, run: doRun, stop: doStop,
+      example: () => guardDirty(() => { setProject(exampleProject()); filePath = null; rememberPath(); setFileDirty(false); }),
+      tags: () => select('tags'), watch: () => select('watch'), diag: () => select('diag'), src: () => select('src'), about: aboutDlg }[cmd];
+    if (go) go();
+  });
+  DESK.onOpenPath(p => guardDirty(() => fileOpen(p)));
+  DESK.onAskClose(() => guardDirty(() => DESK.closeNow()));
+  setFileDirty(false);
+}
+
+/* ===================== Start ===================== */
+document.getElementById('scrim').addEventListener('click', () => { ui.navOpen = false; renderNav(); });
+renderEditor();
+
+</script>
+</body>
+</html>

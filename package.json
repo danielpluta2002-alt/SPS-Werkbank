@@ -1,0 +1,61 @@
+{
+  "name": "sps-werkbank",
+  "productName": "SPS-Werkbank",
+  "version": "1.0.0",
+  "description": "Programmierumgebung für KOP, FUP und SCL mit simulierter CPU",
+  "main": "main.js",
+  "author": {
+    "name": "SPS-Werkbank",
+    "email": "sps-werkbank@users.noreply.github.com"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "de.spswerkbank.app",
+    "productName": "SPS-Werkbank",
+    "artifactName": "SPS-Werkbank-${version}-${os}-${arch}.${ext}",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "app/**", "build/icon.png"],
+    "fileAssociations": [
+      { "ext": "spsw", "name": "SPS-Werkbank-Projekt", "description": "SPS-Werkbank-Projekt", "role": "Editor" }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "SPS-Werkbank",
+      "installerLanguages": ["de_DE"],
+      "language": "1031"
+    },
+    "portable": { "artifactName": "SPS-Werkbank-${version}-portable.${ext}" },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }, { "target": "zip", "arch": ["x64", "arm64"] }],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
+    },
+    "dmg": { "title": "SPS-Werkbank ${version}" },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }, { "target": "deb", "arch": ["x64"] }],
+      "category": "Development",
+      "icon": "build/icon.png",
+      "synopsis": "SPS-Programmierumgebung (KOP, FUP, SCL)",
+      "maintainer": "SPS-Werkbank <sps-werkbank@users.noreply.github.com>"
+    }
+  }
+}
